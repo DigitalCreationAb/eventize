@@ -37,6 +37,30 @@ defmodule EntityTest do
       assert entity_state.state.title == "test"
     end
   end
+  
+  describe "When sending same command with different behaviors" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      Reactive.send(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test1"})
+
+      Reactive.send(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test2"})
+
+      {:ok, id: entity_id}
+    end
+
+    test "then state has correct title", state do
+      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state[:id]}"})
+
+      assert entity_state.state.title == "test1"
+    end
+
+    test "then state has correct second title", state do
+      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state[:id]}"})
+
+      assert entity_state.state.secondTitle == "test2"
+    end
+  end
 
   describe "When asking entity without behavior" do
     setup do

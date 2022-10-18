@@ -19,15 +19,11 @@ defmodule TestEntityWithoutBehavior do
     end
   end
 
-  defmodule State do
-    defstruct title: nil
-  end
-  
   def execute(%Reactive.Entities.Entity.ExecutionContext{}, %Commands.Start{:title => title}) do
     {[%Events.Started{title: title}], %Responses.StartResponse{title: title}}
   end
   
-  defp on(_, %Events.Started{:title => title}) do
-    %State{title: title}
+  defp on(state, %Events.Started{:title => title}) do
+    Map.put(state, :title, title)
   end
 end

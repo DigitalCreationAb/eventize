@@ -11,6 +11,10 @@ defmodule TestEntityWithBehavior do
     defmodule Started do
       defstruct title: nil
     end
+    
+    defmodule SecondTitleUpdated do
+      defstruct secondTitle: nil
+    end
   end
 
   defmodule Responses do
@@ -18,14 +22,16 @@ defmodule TestEntityWithBehavior do
       defstruct title: nil
     end
   end
-
-  defmodule State do
-    defstruct title: nil
-  end
-
+  
   defmodule NotStarted do
     def execute(%Reactive.Entities.Entity.ExecutionContext{}, %Commands.Start{:title => title}) do
       {[%Events.Started{title: title}], %Responses.StartResponse{title: title}}
+    end
+  end
+  
+  defmodule Started do
+    def execute(%Reactive.Entities.Entity.ExecutionContext{}, %Commands.Start{:title => title}) do
+      {[%Events.SecondTitleUpdated{secondTitle: title}], %Responses.StartResponse{title: title}}
     end
   end
 
@@ -34,7 +40,11 @@ defmodule TestEntityWithBehavior do
     NotStarted
   end
 
-  defp on(_, %Events.Started{:title => title}) do
-    %State{title: title}
+  defp on(state, %Events.Started{:title => title}) do
+    {Map.put(state, :title, title), Started}
+  end
+  
+  defp on(state, %Events.SecondTitleUpdated{:secondTitle => title}) do
+    Map.put(state, :secondTitle, title)
   end
 end

@@ -15,9 +15,9 @@ defmodule Reactive.Entities.Entity do
   end
 
   defmacro __using__(_) do
-    quote location: :keep do
+    quote do
       use GenServer
-      import Reactive.Entities.Entity
+      alias Reactive.Entities.Entity
 
       @before_compile Reactive.Entities.Entity
       @behaviour Reactive.Entities.Entity
@@ -39,53 +39,61 @@ defmodule Reactive.Entities.Entity do
       end
       
       def init(id) do
-        case start(id) do
-          nil ->
-            {:ok, %EntityState{id: id, behavior: __MODULE__}}
-          {behavior, initial_state} -> 
-            {:ok, %EntityState{id: id, behavior: behavior, state: initial_state}}
-          behavior when is_atom(behavior) -> 
-            {:ok, %EntityState{id: id, behavior: behavior}}
-          initial_state -> 
-            {:ok, %EntityState{id: id, behavior: __MODULE__, state: initial_state}}
-        end
+        {:ok, initialize_state(id)}
       end
       
       defoverridable [init: 1]
       
-      def handle_cast({:execute, command}, entity_state) do
+      def handle_cast({:execute, command}, entity_state) when is_struct(command) do
         {_, new_state} = execute_command(command, entity_state)
 
         {:noreply, new_state}
       end
       
-      def handle_call({:execute, command}, _from, entity_state) do
+      def handle_call({:execute, command}, _from, entity_state) when is_struct(command) do
         {response, new_state} = execute_command(command, entity_state)
 
         {:reply, response, new_state}
+      end
+
+      defp initialize_state(id) do
+        case start(id) do
+          nil ->
+            %EntityState{id: id, behavior: __MODULE__}
+          {behavior, initial_state} ->
+            %EntityState{id: id, behavior: behavior, state: initial_state}
+          behavior when is_atom(behavior) ->
+            %EntityState{id: id, behavior: behavior}
+          initial_state ->
+            %EntityState{id: id, behavior: __MODULE__, state: initial_state}
+        end
       end
       
       defp get_id(entity_id) do
         "#{__MODULE__}-#{entity_id}"
       end
       
-      defp execute_command(command, %EntityState{:id => id, :state => state, :behavior => behavior}) do
+      defp execute_command(command, %EntityState{:id => id, :state => state, :behavior => behavior} = entity_state) when is_struct(command) do
         case behavior.execute(%ExecutionContext{id: id, state: state}, command) do
-          {[], response} -> {response, %EntityState{id: id, state: state, behavior: behavior}}
-          {events, response} ->
-            {state, behavior} = apply_events(events, state, behavior)
+          {events, response} when is_list(events) ->
+            {state, behavior} = apply_events(events, entity_state)
 
             {response, %EntityState{id: id, state: state, behavior: behavior}}
-          [] -> {nil, %EntityState{id: id, state: state, behavior: behavior}}
           events when is_list(events) ->
-            {state, behavior} = apply_events(events, state, behavior)
+            {state, behavior} = apply_events(events, entity_state)
 
             {nil, %EntityState{id: id, state: state, behavior: behavior}}
           _ -> {nil, %EntityState{id: id, state: state, behavior: behavior}}
         end
       end
       
-      defp apply_events(events, state, current_behavior) do
+      defp apply_events(events, %EntityState{:id => _id, :state => state, :behavior => behavior}) when is_list(events) do
+        run_event_handlers(events, state, behavior)
+      end
+
+      defoverridable [apply_events: 2]
+      
+      defp run_event_handlers(events, state, current_behavior) when is_list(events) do
         Enum.reduce(events, {state, current_behavior}, fn(event, {state, behavior}) ->
           case on(state, event) do
             {new_state, nil} -> {new_state, behavior}
@@ -94,8 +102,6 @@ defmodule Reactive.Entities.Entity do
           end
         end)
       end
-
-      defoverridable [apply_events: 3]
     end
   end
   
