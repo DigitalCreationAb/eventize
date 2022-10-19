@@ -16,7 +16,7 @@ defmodule EntityTest do
     end
     
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state[:id]}"})
+      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
 
       assert entity_state.state.title == "test"
     end
@@ -32,7 +32,7 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state[:id]}"})
+      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
 
       assert entity_state.state.title == "test"
     end
@@ -50,13 +50,13 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state[:id]}"})
+      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
 
       assert entity_state.state.title == "test1"
     end
 
     test "then state has correct second title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state[:id]}"})
+      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
 
       assert entity_state.state.secondTitle == "test2"
     end
@@ -76,7 +76,7 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithoutBehavior}-#{state[:id]}"})
+      entity_state = :sys.get_state({:global, "#{TestEntityWithoutBehavior}-#{state.id}"})
 
       assert entity_state.state.title == "test"
     end
@@ -92,7 +92,7 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithoutBehavior}-#{state[:id]}"})
+      entity_state = :sys.get_state({:global, "#{TestEntityWithoutBehavior}-#{state.id}"})
 
       assert entity_state.state.title == "test"
     end
