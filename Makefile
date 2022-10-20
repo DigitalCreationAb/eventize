@@ -13,10 +13,18 @@ endif
 build: restore
 	mix compile
 
+.PHONY: docs
+docs:
+	mix docs
+
 .PHONY: restore
 restore:
 	mix deps.get
-	
+
 .PHONY: test
 test: restore
 	mix test
+
+.PHONY: publish
+publish: build docs
+	mix hex.publish
