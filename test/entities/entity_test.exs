@@ -97,4 +97,22 @@ defmodule EntityTest do
       assert entity_state.state.title == "test"
     end
   end
+  
+  describe "When sending command that results in event that stops entity" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      pid = Reactive.Entities.Supervisor.get_entity(TestEntityWithoutBehavior, entity_id)
+
+      ref = Process.monitor(pid)
+
+      %{id: entity_id, ref: ref}
+    end
+    
+    test "then entity should be stopped", %{ref: ref, id: id} do
+      Reactive.send(TestEntityWithoutBehavior, id, %TestEntityWithoutBehavior.Commands.Stop{id: "test"})
+      
+      assert_receive {:DOWN, ^ref, :process, _pid, :normal}
+    end
+  end
 end

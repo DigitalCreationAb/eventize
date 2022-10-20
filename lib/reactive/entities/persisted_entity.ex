@@ -5,16 +5,18 @@ defmodule Reactive.Entities.PersistedEntity do
       alias Reactive.Entities.Entity
       alias Reactive.Persistence.EventStore
 
-      @behaviour Reactive.Entities.PersistedEntity
-
       def init(id) do
         entity_state = initialize_state(id)
-        
+
+        {:ok, entity_state, {:continue, :initialize_events}}
+      end
+
+      def handle_continue(:initialize_events, entity_state) do
         events = load_events(entity_state)
 
-        {new_state, new_behavior} = run_event_handlers(events, entity_state.state, entity_state.behavior)
+        {new_state, new_behavior, _} = run_event_handlers(events, entity_state.state, entity_state.behavior)
 
-        {:ok, %Reactive.Entities.Entity.EntityState{id: id, behavior: new_behavior, state: new_state}}
+        {:noreply, %Reactive.Entities.Entity.EntityState{id: entity_state.id, behavior: new_behavior, state: new_state}}
       end
       
       defp load_events(%Reactive.Entities.Entity.EntityState{:id => id}) do
