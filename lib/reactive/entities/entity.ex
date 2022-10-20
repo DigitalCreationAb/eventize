@@ -83,6 +83,8 @@ defmodule Reactive.Entities.Entity do
             {state, behavior} = apply_events(events, entity_state)
 
             {nil, %EntityState{id: id, state: state, behavior: behavior}}
+          response ->
+            {response, %EntityState{id: id, state: state, behavior: behavior}}
           _ -> {nil, %EntityState{id: id, state: state, behavior: behavior}}
         end
       end

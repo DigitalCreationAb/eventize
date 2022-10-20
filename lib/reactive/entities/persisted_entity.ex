@@ -1,4 +1,4 @@
-defmodule PersistedEntity do
+defmodule Reactive.Entities.PersistedEntity do
   defmacro __using__(_) do
     quote location: :keep do
       use Reactive.Entities.Entity
@@ -14,21 +14,25 @@ defmodule PersistedEntity do
 
         {new_state, new_behavior} = run_event_handlers(events, entity_state.state, entity_state.behavior)
 
-        {:ok, %EntityState{id: id, behavior: new_behavior, state: new_state}}
+        {:ok, %Reactive.Entities.Entity.EntityState{id: id, behavior: new_behavior, state: new_state}}
       end
       
-      defp load_events(%EntityState{id => id}) do
+      defp load_events(%Reactive.Entities.Entity.EntityState{:id => id}) do
         EventStore.load_events(get_stream_name(id))
       end
 
-      defp apply_events(events, %EntityState{:id => id, :state => state, :behavior => behavior}) when is_list(events) do
+      defp apply_events(events, %Reactive.Entities.Entity.EntityState{:id => id, :state => state, :behavior => behavior}) when is_list(events) do
         EventStore.append_events(get_stream_name(id), events)
         
         run_event_handlers(events, state, behavior)
       end
       
       defp get_stream_name(id) do
-        id
+        [module_name | _] = Atom.to_string(__MODULE__) 
+                      |> String.split(".")
+                      |> Enum.take(-1)
+        
+        "#{String.downcase(module_name)}-#{id}"
       end
       
       defoverridable [get_stream_name: 1]

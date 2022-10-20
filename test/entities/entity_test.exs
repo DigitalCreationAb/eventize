@@ -12,7 +12,7 @@ defmodule EntityTest do
     end
     
     test "then response has correct title", state do
-      assert state[:response].title == "test"
+      assert state.response.title == "test"
     end
     
     test "then state has correct title", state do
@@ -72,7 +72,7 @@ defmodule EntityTest do
     end
 
     test "then response has correct title", state do
-      assert state[:response].title == "test"
+      assert state.response.title == "test"
     end
 
     test "then state has correct title", state do
