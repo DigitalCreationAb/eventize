@@ -1,15 +1,38 @@
 defmodule Reactive.Entities.Entity do
+  @moduledoc """
+  Entity is a `GenServer` process used to provide access to an
+  instance of an entity that can handle commands and apply events.  
+    
+  A entity is started whenever a command is sent to a instance.
+  By default, an entity process will run indefinitely once started. 
+  Its lifespan may be controlled by implementing the `c:get_lifespan/2` 
+  function.
+  """
+  
+  @doc """
+  A callback used to start a entity.
+  """
   @callback start(id :: Any) :: {:atom, %{}} | :atom | %{} | nil
 
   @optional_callbacks start: 1
   
   defmodule EntityState do
+    @moduledoc """
+    EntityState is a struct that stores the current state for a 
+    `Reactive.Entities.Entity` instance.
+    """
+    
     defstruct id: nil,
               state: %{},
               behavior: nil
   end
   
   defmodule ExecutionContext do
+    @moduledoc """
+    ExecutionContext is a struct that includes information 
+    needed when executing a command.
+    """
+    
     defstruct id: nil,
               state: %{}
   end
@@ -22,6 +45,17 @@ defmodule Reactive.Entities.Entity do
       @before_compile Reactive.Entities.Entity
       @behaviour Reactive.Entities.Entity
 
+      @doc """
+      Provides a child specification to allow the entity to be easily
+      supervised.
+        
+      ### Example
+
+          Supervisor.start_link([
+            {ExampleEntity, []}
+          ], strategy: :one_for_one)
+
+      """
       def child_spec(id) do
         %{
           id: get_id(id),
@@ -29,7 +63,14 @@ defmodule Reactive.Entities.Entity do
           type: :worker
         }
       end
-      
+
+      @doc """
+      Starts a new entity.
+
+      Returns `{:ok, pid}` on success, `{:error, {:already_started, pid}}` if the
+      application is already started, or `{:error, term}` in case anything else goes
+      wrong.
+      """
       def start_link(id) do
         GenServer.start_link(
           __MODULE__,
@@ -38,12 +79,18 @@ defmodule Reactive.Entities.Entity do
         )
       end
       
+      @doc """
+      Initializes the entity with the initial state.
+      """
       def init(id) do
         {:ok, initialize_state(id)}
       end
       
-      defoverridable [init: 1]
+      defoverridable init: 1
       
+      @doc """
+      Handle any command sent to the entity.
+      """
       def handle_cast({:execute, command}, entity_state) when is_struct(command) do
         {_, new_state, life_span} = execute_command(command, entity_state)
         
@@ -54,6 +101,9 @@ defmodule Reactive.Entities.Entity do
         end
       end
       
+      @doc """
+      Handle any command sent to the entity where the sender wants a response back.
+      """
       def handle_call({:execute, command}, _from, entity_state) when is_struct(command) do
         {response, new_state, life_span} = execute_command(command, entity_state)
 
@@ -133,9 +183,7 @@ defmodule Reactive.Entities.Entity do
       
       defp on(state, _event), do: state
 
-      defp get_lifespan(_event, _state) do
-        :keep
-      end
+      defp get_lifespan(_event, _state), do: :keep
     end
   end
 end

@@ -1,4 +1,8 @@
 defmodule Reactive.Entities.Supervisor do
+  @moduledoc """
+  Supervises `Reactive.Entities.Entity` instance processes.
+  """
+
   use DynamicSupervisor
 
   def start_link() do

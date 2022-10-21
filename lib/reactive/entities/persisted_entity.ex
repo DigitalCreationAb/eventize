@@ -1,16 +1,31 @@
 defmodule Reactive.Entities.PersistedEntity do
+  @moduledoc """
+  PersistedEntity is a `Reactive.Entities.Entity` that will 
+  use event sourcing to store its applied events.
+  """
+  
   defmacro __using__(_) do
     quote location: :keep do
       use Reactive.Entities.Entity
       alias Reactive.Entities.Entity
       alias Reactive.Persistence.EventStore
 
+      @doc """
+      Initializes the PersistedEntity with the initial state. 
+      Then it uses `:continue` to read the events from the 
+      `Reactive.Persistence.EventStore` in the background.
+      """
       def init(id) do
         entity_state = initialize_state(id)
 
         {:ok, entity_state, {:continue, :initialize_events}}
       end
 
+      @doc """
+      Uses the `Reactive.Persistence.EventStore` to load all 
+      events for the current entity and runs all event handler 
+      to updated the process state.
+      """
       def handle_continue(:initialize_events, entity_state) do
         events = load_events(entity_state)
 
@@ -37,7 +52,7 @@ defmodule Reactive.Entities.PersistedEntity do
         "#{String.downcase(module_name)}-#{id}"
       end
       
-      defoverridable [get_stream_name: 1]
+      defoverridable get_stream_name: 1
     end
   end
 end
