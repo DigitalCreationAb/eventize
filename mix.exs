@@ -41,7 +41,8 @@ defmodule Reactive.MixProject do
   defp deps do
     [
       {:elixir_uuid, "~> 1.2"},
-      {:ex_doc, "~> 0.29.0", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.29.0", only: :dev, runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
     ]
   end
 
