@@ -2,7 +2,7 @@ defmodule EntityTest do
   use ExUnit.Case
   doctest Reactive.Entities.Entity
   
-  describe "When asking entity with behavior" do
+  describe "When calling entity with behavior" do
     setup do
       entity_id = UUID.uuid4()
       
@@ -22,7 +22,7 @@ defmodule EntityTest do
     end
   end
   
-  describe "When sending to entity with behavior" do
+  describe "When casting to entity with behavior" do
     setup do
       entity_id = UUID.uuid4()
 
@@ -38,7 +38,7 @@ defmodule EntityTest do
     end
   end
   
-  describe "When sending same command with different behaviors" do
+  describe "When casting same command with different behaviors" do
     setup do
       entity_id = UUID.uuid4()
 
@@ -62,7 +62,7 @@ defmodule EntityTest do
     end
   end
 
-  describe "When asking entity without behavior" do
+  describe "When calling entity without behavior" do
     setup do
       entity_id = UUID.uuid4()
 
@@ -82,7 +82,7 @@ defmodule EntityTest do
     end
   end
 
-  describe "When sending to entity without behavior" do
+  describe "When casting to entity without behavior" do
     setup do
       entity_id = UUID.uuid4()
 
@@ -98,7 +98,7 @@ defmodule EntityTest do
     end
   end
   
-  describe "When sending command that results in event that stops entity" do
+  describe "When casting command that results in event that stops entity" do
     setup do
       entity_id = UUID.uuid4()
 
