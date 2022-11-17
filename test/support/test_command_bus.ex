@@ -1,7 +1,7 @@
 defmodule TestCommandBus do
   @moduledoc false
 
-  @behavior Reactive.Entities.CommandBus
+  @behaviour Reactive.Entities.CommandBus
   
   def call(entity_type, id, command) do
     pid = TestEntitiesSupervisor.get_entity(entity_type, id)
