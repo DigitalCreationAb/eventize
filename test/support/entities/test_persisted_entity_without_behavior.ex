@@ -1,28 +1,46 @@
 defmodule TestPersistedEntityWithoutBehavior do
+  @moduledoc false
+  
   use Reactive.Entities.PersistedEntity
 
   defmodule Commands do
+    @moduledoc false
+    
     defmodule Start do
+      @moduledoc false
+      
       defstruct title: nil
     end
     
     defmodule GetTitle do
+      @moduledoc false
+      
       defstruct id: nil
     end
   end
 
   defmodule Events do
+    @moduledoc false
+    
     defmodule Started do
+      @moduledoc false
+      
       defstruct title: nil
     end
   end
 
   defmodule Responses do
+    @moduledoc false
+    
     defmodule StartResponse do
+      @moduledoc false
+      
       defstruct title: nil
     end
     
     defmodule GetTitleResponse do
+      @moduledoc false
+      
       defstruct title: nil
     end
   end
