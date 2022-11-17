@@ -31,9 +31,19 @@ defmodule Reactive.MixProject do
 
   # Run "mix help compile.app" to learn about applications.
   def application do
+    get_application(Mix.env())
+  end
+  
+  defp get_application(:test) do
     [
       extra_applications: [:logger, :crypto, :runtime_tools],
-      mod: {Reactive, []}
+      mod: {TestApplication, []}
+    ]
+  end
+
+  defp get_application(_) do
+    [
+      extra_applications: [:logger, :crypto, :runtime_tools]
     ]
   end
 

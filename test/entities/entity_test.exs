@@ -6,7 +6,7 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
       
-      response = Reactive.ask(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test"})
+      response = TestCommandBus.call(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test"})
       
       {:ok, id: entity_id, response: response}
     end
@@ -26,7 +26,7 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      Reactive.send(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test"})
+      TestCommandBus.cast(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test"})
 
       {:ok, id: entity_id}
     end
@@ -42,9 +42,9 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      Reactive.send(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test1"})
+      TestCommandBus.cast(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test1"})
 
-      Reactive.send(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test2"})
+      TestCommandBus.cast(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test2"})
 
       {:ok, id: entity_id}
     end
@@ -66,7 +66,7 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      response = Reactive.ask(TestEntityWithoutBehavior, entity_id, %TestEntityWithoutBehavior.Commands.Start{title: "test"})
+      response = TestCommandBus.call(TestEntityWithoutBehavior, entity_id, %TestEntityWithoutBehavior.Commands.Start{title: "test"})
 
       {:ok, id: entity_id, response: response}
     end
@@ -86,7 +86,7 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      Reactive.send(TestEntityWithoutBehavior, entity_id, %TestEntityWithoutBehavior.Commands.Start{title: "test"})
+      TestCommandBus.cast(TestEntityWithoutBehavior, entity_id, %TestEntityWithoutBehavior.Commands.Start{title: "test"})
 
       {:ok, id: entity_id}
     end
@@ -102,7 +102,7 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      pid = Reactive.Entities.Supervisor.get_entity(TestEntityWithoutBehavior, entity_id)
+      pid = TestEntitiesSupervisor.get_entity(TestEntityWithoutBehavior, entity_id)
 
       ref = Process.monitor(pid)
 
@@ -110,7 +110,7 @@ defmodule EntityTest do
     end
     
     test "then entity should be stopped", %{ref: ref, id: id} do
-      Reactive.send(TestEntityWithoutBehavior, id, %TestEntityWithoutBehavior.Commands.Stop{id: "test"})
+      TestCommandBus.cast(TestEntityWithoutBehavior, id, %TestEntityWithoutBehavior.Commands.Stop{id: "test"})
       
       assert_receive {:DOWN, ^ref, :process, _pid, :normal}
     end

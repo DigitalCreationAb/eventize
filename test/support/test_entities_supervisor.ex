@@ -1,7 +1,5 @@
-defmodule Reactive.Entities.Supervisor do
-  @moduledoc """
-  Supervises `Reactive.Entities.Entity` instance processes.
-  """
+defmodule TestEntitiesSupervisor do
+  @moduledoc false
 
   use DynamicSupervisor
 
@@ -17,15 +15,15 @@ defmodule Reactive.Entities.Supervisor do
     }
   end
 
-  @impl true
-  def init(_) do
-    DynamicSupervisor.init(strategy: :one_for_one)
-  end
-
   def get_entity(type, id) do
     case DynamicSupervisor.start_child(__MODULE__, {type, id}) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
     end
+  end
+
+  @impl true
+  def init(_) do
+    DynamicSupervisor.init(strategy: :one_for_one)
   end
 end
