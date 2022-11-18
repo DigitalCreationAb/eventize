@@ -4,7 +4,7 @@ defmodule InMemoryEventStoreTest do
   alias Reactive.Persistence.InMemoryEventStore
   alias Reactive.Persistence.EventStore
   doctest InMemoryEventStore
-  
+
   describe "When storing single event" do
     setup do
       stream_name = UUID.uuid4()
@@ -13,16 +13,16 @@ defmodule InMemoryEventStoreTest do
 
       {:ok, stream_name: stream_name}
     end
-    
+
     test "then one event can be loaded", state do
       events = EventStore.load_events(state.stream_name)
 
       assert length(events) == 1
     end
-    
+
     test "then event should have correct title", state do
       [first] = EventStore.load_events(state.stream_name)
-      
+
       assert first.title == "title"
     end
   end

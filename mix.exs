@@ -8,7 +8,7 @@ defmodule Reactive.MixProject do
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       description: description(),
       package: package()
     ]
@@ -16,10 +16,10 @@ defmodule Reactive.MixProject do
 
   defp description do
     """
-    
+
     """
   end
-  
+
   defp package do
     [
       files: ["lib", "mix.exs", "README*", "LICENSE*"],
@@ -33,7 +33,7 @@ defmodule Reactive.MixProject do
   def application do
     get_application(Mix.env())
   end
-  
+
   defp get_application(:test) do
     [
       extra_applications: [:logger, :crypto, :runtime_tools],
@@ -56,6 +56,6 @@ defmodule Reactive.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib","test/support"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 end

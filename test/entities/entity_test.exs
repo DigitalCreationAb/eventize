@@ -1,32 +1,41 @@
 defmodule EntityTest do
   use ExUnit.Case
   doctest Reactive.Entities.Entity
-  
+
   describe "When calling entity with behavior" do
     setup do
       entity_id = UUID.uuid4()
-      
-      response = TestCommandBus.call(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test"})
-      
+
+      response =
+        TestCommandBus.call(
+          TestEntityWithBehavior,
+          entity_id,
+          %TestEntityWithBehavior.Commands.Start{title: "test"}
+        )
+
       {:ok, id: entity_id, response: response}
     end
-    
+
     test "then response has correct title", state do
       assert state.response.title == "test"
     end
-    
+
     test "then state has correct title", state do
       entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
 
       assert entity_state.state.title == "test"
     end
   end
-  
+
   describe "When casting to entity with behavior" do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.cast(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test"})
+      TestCommandBus.cast(
+        TestEntityWithBehavior,
+        entity_id,
+        %TestEntityWithBehavior.Commands.Start{title: "test"}
+      )
 
       {:ok, id: entity_id}
     end
@@ -37,14 +46,22 @@ defmodule EntityTest do
       assert entity_state.state.title == "test"
     end
   end
-  
+
   describe "When casting same command with different behaviors" do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.cast(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test1"})
+      TestCommandBus.cast(
+        TestEntityWithBehavior,
+        entity_id,
+        %TestEntityWithBehavior.Commands.Start{title: "test1"}
+      )
 
-      TestCommandBus.cast(TestEntityWithBehavior, entity_id, %TestEntityWithBehavior.Commands.Start{title: "test2"})
+      TestCommandBus.cast(
+        TestEntityWithBehavior,
+        entity_id,
+        %TestEntityWithBehavior.Commands.Start{title: "test2"}
+      )
 
       {:ok, id: entity_id}
     end
@@ -66,7 +83,12 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      response = TestCommandBus.call(TestEntityWithoutBehavior, entity_id, %TestEntityWithoutBehavior.Commands.Start{title: "test"})
+      response =
+        TestCommandBus.call(
+          TestEntityWithoutBehavior,
+          entity_id,
+          %TestEntityWithoutBehavior.Commands.Start{title: "test"}
+        )
 
       {:ok, id: entity_id, response: response}
     end
@@ -86,7 +108,11 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.cast(TestEntityWithoutBehavior, entity_id, %TestEntityWithoutBehavior.Commands.Start{title: "test"})
+      TestCommandBus.cast(
+        TestEntityWithoutBehavior,
+        entity_id,
+        %TestEntityWithoutBehavior.Commands.Start{title: "test"}
+      )
 
       {:ok, id: entity_id}
     end
@@ -97,7 +123,7 @@ defmodule EntityTest do
       assert entity_state.state.title == "test"
     end
   end
-  
+
   describe "When casting command that results in event that stops entity" do
     setup do
       entity_id = UUID.uuid4()
@@ -108,10 +134,12 @@ defmodule EntityTest do
 
       %{id: entity_id, ref: ref}
     end
-    
+
     test "then entity should be stopped", %{ref: ref, id: id} do
-      TestCommandBus.cast(TestEntityWithoutBehavior, id, %TestEntityWithoutBehavior.Commands.Stop{id: "test"})
-      
+      TestCommandBus.cast(TestEntityWithoutBehavior, id, %TestEntityWithoutBehavior.Commands.Stop{
+        id: "test"
+      })
+
       assert_receive {:DOWN, ^ref, :process, _pid, :normal}
     end
   end

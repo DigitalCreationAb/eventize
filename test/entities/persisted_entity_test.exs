@@ -6,17 +6,26 @@ defmodule PersistedEntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.call(TestPersistedEntityWithoutBehavior, entity_id, %TestPersistedEntityWithoutBehavior.Commands.Start{title: "test"})
+      TestCommandBus.call(
+        TestPersistedEntityWithoutBehavior,
+        entity_id,
+        %TestPersistedEntityWithoutBehavior.Commands.Start{title: "test"}
+      )
 
       pid = TestEntitiesSupervisor.get_entity(TestPersistedEntityWithoutBehavior, entity_id)
 
       GenServer.stop(pid)
-      
-      response = TestCommandBus.call(TestPersistedEntityWithoutBehavior, entity_id, %TestPersistedEntityWithoutBehavior.Commands.GetTitle{})
-      
+
+      response =
+        TestCommandBus.call(
+          TestPersistedEntityWithoutBehavior,
+          entity_id,
+          %TestPersistedEntityWithoutBehavior.Commands.GetTitle{}
+        )
+
       {:ok, id: entity_id, response: response}
     end
-    
+
     test "then response should have correct title", state do
       assert state.response.title == "test"
     end
@@ -26,9 +35,18 @@ defmodule PersistedEntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.call(TestPersistedEntityWithoutBehavior, entity_id, %TestPersistedEntityWithoutBehavior.Commands.Start{title: "test"})
+      TestCommandBus.call(
+        TestPersistedEntityWithoutBehavior,
+        entity_id,
+        %TestPersistedEntityWithoutBehavior.Commands.Start{title: "test"}
+      )
 
-      response = TestCommandBus.call(TestPersistedEntityWithoutBehavior, entity_id, %TestPersistedEntityWithoutBehavior.Commands.GetTitle{})
+      response =
+        TestCommandBus.call(
+          TestPersistedEntityWithoutBehavior,
+          entity_id,
+          %TestPersistedEntityWithoutBehavior.Commands.GetTitle{}
+        )
 
       {:ok, id: entity_id, response: response}
     end
