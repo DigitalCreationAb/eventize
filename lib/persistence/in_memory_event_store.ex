@@ -1,7 +1,7 @@
 defmodule Reactive.Persistence.InMemoryEventStore do
   @moduledoc """
-  InMemoryEventStore is a `Reactive.Persistence.EventStore` 
-  process used to store events for `Reactive.Entities.Entity` 
+  InMemoryEventStore is a `Reactive.Persistence.EventStore`
+  process used to store events for `Reactive.Entities.Entity`
   instances in memory.
   """
 
@@ -13,6 +13,10 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     """
 
     defstruct streams: %{}
+  end
+
+  def start_link(args, options \\ []) do
+    GenServer.start_link(__MODULE__, args, options)
   end
 
   @doc """
@@ -33,7 +37,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
   end
 
   @doc """
-  Appends a list of events to a stream. 
+  Appends a list of events to a stream.
   If the stream doesn't exist it will be created.
   """
   def append(id, events, %State{:streams => streams} = state) do

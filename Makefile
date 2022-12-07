@@ -25,10 +25,6 @@ restore:
 test: restore
 	mix test
 
-.PHONY: format
-format:
-	mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
-
 .PHONY: publish
 publish: build docs
 	mix hex.publish

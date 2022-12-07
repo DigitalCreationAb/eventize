@@ -10,7 +10,7 @@ defmodule EntityTest do
         TestCommandBus.call(
           TestEntityWithBehavior,
           entity_id,
-          %TestEntityWithBehavior.Commands.Start{title: "test"}
+          {:start, %{title: "test"}}
         )
 
       {:ok, id: entity_id, response: response}
@@ -21,7 +21,8 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
+      entity_state =
+        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
 
       assert entity_state.state.title == "test"
     end
@@ -34,14 +35,15 @@ defmodule EntityTest do
       TestCommandBus.cast(
         TestEntityWithBehavior,
         entity_id,
-        %TestEntityWithBehavior.Commands.Start{title: "test"}
+        {:start, %{title: "test"}}
       )
 
       {:ok, id: entity_id}
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
+      entity_state =
+        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
 
       assert entity_state.state.title == "test"
     end
@@ -54,26 +56,28 @@ defmodule EntityTest do
       TestCommandBus.cast(
         TestEntityWithBehavior,
         entity_id,
-        %TestEntityWithBehavior.Commands.Start{title: "test1"}
+        {:start, %{title: "test1"}}
       )
 
       TestCommandBus.cast(
         TestEntityWithBehavior,
         entity_id,
-        %TestEntityWithBehavior.Commands.Start{title: "test2"}
+        {:start, %{title: "test2"}}
       )
 
       {:ok, id: entity_id}
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
+      entity_state =
+        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
 
       assert entity_state.state.title == "test1"
     end
 
     test "then state has correct second title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithBehavior}-#{state.id}"})
+      entity_state =
+        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
 
       assert entity_state.state.secondTitle == "test2"
     end
@@ -87,7 +91,7 @@ defmodule EntityTest do
         TestCommandBus.call(
           TestEntityWithoutBehavior,
           entity_id,
-          %TestEntityWithoutBehavior.Commands.Start{title: "test"}
+          {:start, %{title: "test"}}
         )
 
       {:ok, id: entity_id, response: response}
@@ -98,7 +102,8 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithoutBehavior}-#{state.id}"})
+      entity_state =
+        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
 
       assert entity_state.state.title == "test"
     end
@@ -111,14 +116,15 @@ defmodule EntityTest do
       TestCommandBus.cast(
         TestEntityWithoutBehavior,
         entity_id,
-        %TestEntityWithoutBehavior.Commands.Start{title: "test"}
+        {:start, %{title: "test"}}
       )
 
       {:ok, id: entity_id}
     end
 
     test "then state has correct title", state do
-      entity_state = :sys.get_state({:global, "#{TestEntityWithoutBehavior}-#{state.id}"})
+      entity_state =
+        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
 
       assert entity_state.state.title == "test"
     end
@@ -136,9 +142,11 @@ defmodule EntityTest do
     end
 
     test "then entity should be stopped", %{ref: ref, id: id} do
-      TestCommandBus.cast(TestEntityWithoutBehavior, id, %TestEntityWithoutBehavior.Commands.Stop{
-        id: "test"
-      })
+      TestCommandBus.cast(
+        TestEntityWithoutBehavior,
+        id,
+        :stop
+      )
 
       assert_receive {:DOWN, ^ref, :process, _pid, :normal}
     end

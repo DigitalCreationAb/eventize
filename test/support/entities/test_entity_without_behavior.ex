@@ -3,61 +3,40 @@ defmodule TestEntityWithoutBehavior do
 
   use Reactive.Entities.Entity
 
-  defmodule Commands do
-    @moduledoc false
-
-    defmodule Start do
-      @moduledoc false
-
-      defstruct title: nil
-    end
-
-    defmodule Stop do
-      @moduledoc false
-
-      defstruct id: nil
-    end
+  def child_spec(id) do
+    %{
+      id: id,
+      start: {__MODULE__, :start_link, [id]},
+      type: :worker
+    }
   end
 
-  defmodule Events do
-    @moduledoc false
-
-    defmodule Started do
-      @moduledoc false
-
-      defstruct title: nil
-    end
-
-    defmodule Stopped do
-      @moduledoc false
-
-      defstruct id: nil
-    end
+  def start_link(id) do
+    GenServer.start_link(
+      __MODULE__,
+      id,
+      name: {:global, id}
+    )
   end
 
-  defmodule Responses do
-    @moduledoc false
-
-    defmodule StartResponse do
-      @moduledoc false
-
-      defstruct title: nil
-    end
+  @impl true
+  def start(_id) do
+    %{}
   end
 
-  def execute(%Reactive.Entities.Entity.ExecutionContext{}, %Commands.Start{:title => title}) do
-    {[%Events.Started{title: title}], %Responses.StartResponse{title: title}}
+  def execute({:start, %{:title => title}}, _context) do
+    {[{:started, %{title: title}}], %{title: title}}
   end
 
-  def execute(%Reactive.Entities.Entity.ExecutionContext{:id => id}, %Commands.Stop{}) do
-    [%Events.Stopped{id: id}]
+  def execute(:stop, %{:id => id}) do
+    [{:stopped, %{id: id}}]
   end
 
-  defp on(state, %Events.Started{:title => title}) do
+  defp on(state, {:started, %{:title => title}}) do
     Map.put(state, :title, title)
   end
 
-  defp get_lifespan(%Events.Stopped{}, _state) do
+  defp get_lifespan({:stopped, _data}, _state) do
     :stop
   end
 end

@@ -9,7 +9,7 @@ defmodule PersistedEntityTest do
       TestCommandBus.call(
         TestPersistedEntityWithoutBehavior,
         entity_id,
-        %TestPersistedEntityWithoutBehavior.Commands.Start{title: "test"}
+        {:start, %{title: "test"}}
       )
 
       pid = TestEntitiesSupervisor.get_entity(TestPersistedEntityWithoutBehavior, entity_id)
@@ -20,7 +20,7 @@ defmodule PersistedEntityTest do
         TestCommandBus.call(
           TestPersistedEntityWithoutBehavior,
           entity_id,
-          %TestPersistedEntityWithoutBehavior.Commands.GetTitle{}
+          :get_title
         )
 
       {:ok, id: entity_id, response: response}
@@ -38,14 +38,14 @@ defmodule PersistedEntityTest do
       TestCommandBus.call(
         TestPersistedEntityWithoutBehavior,
         entity_id,
-        %TestPersistedEntityWithoutBehavior.Commands.Start{title: "test"}
+        {:start, %{title: "test"}}
       )
 
       response =
         TestCommandBus.call(
           TestPersistedEntityWithoutBehavior,
           entity_id,
-          %TestPersistedEntityWithoutBehavior.Commands.GetTitle{}
+          :get_title
         )
 
       {:ok, id: entity_id, response: response}

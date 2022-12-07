@@ -3,57 +3,31 @@ defmodule TestPersistedEntityWithoutBehavior do
 
   use Reactive.Entities.PersistedEntity
 
-  defmodule Commands do
-    @moduledoc false
-
-    defmodule Start do
-      @moduledoc false
-
-      defstruct title: nil
-    end
-
-    defmodule GetTitle do
-      @moduledoc false
-
-      defstruct id: nil
-    end
+  def child_spec(id) do
+    %{
+      id: id,
+      start: {__MODULE__, :start_link, [id]},
+      type: :worker
+    }
   end
 
-  defmodule Events do
-    @moduledoc false
-
-    defmodule Started do
-      @moduledoc false
-
-      defstruct title: nil
-    end
+  def start_link(id) do
+    GenServer.start_link(
+      __MODULE__,
+      id,
+      name: {:global, id}
+    )
   end
 
-  defmodule Responses do
-    @moduledoc false
-
-    defmodule StartResponse do
-      @moduledoc false
-
-      defstruct title: nil
-    end
-
-    defmodule GetTitleResponse do
-      @moduledoc false
-
-      defstruct title: nil
-    end
+  def execute({:start, %{:title => title}}, _context) do
+    {[{:started, %{title: title}}], %{title: title}}
   end
 
-  def execute(%Reactive.Entities.Entity.ExecutionContext{}, %Commands.Start{:title => title}) do
-    {[%Events.Started{title: title}], %Responses.StartResponse{title: title}}
+  def execute(:get_title, %{:state => state}) do
+    %{title: state.title}
   end
 
-  def execute(%Reactive.Entities.Entity.ExecutionContext{:state => state}, %Commands.GetTitle{}) do
-    %Responses.GetTitleResponse{title: state.title}
-  end
-
-  defp on(state, %Events.Started{:title => title}) do
+  defp on(state, {:started, %{:title => title}}) do
     Map.put(state, :title, title)
   end
 end
