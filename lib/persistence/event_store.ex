@@ -7,14 +7,14 @@ defmodule Reactive.Persistence.EventStore do
   @doc """
   A callback used to load all the events for a stream.
   """
-  @callback load(id :: Any, state :: struct()) ::
-              {events :: Enumerable.t(), new_state :: struct()} | Enumerable.t()
+  @callback load(id :: String.t(), state :: map) ::
+              {events :: Enumerable.t(), new_state :: map} | Enumerable.t()
 
   @doc """
   A callback used to append new events to a stream.
   """
-  @callback append(id :: Any, events :: Enumerable.t(), state :: struct()) ::
-              {:ok, new_state :: struct()} | :ok | {:error, error :: Any}
+  @callback append(id :: String.t(), events :: Enumerable.t(), state :: map) ::
+              {:ok, new_state :: map} | :ok | {:error, error :: term}
 
   defmacro __using__(_) do
     quote do
