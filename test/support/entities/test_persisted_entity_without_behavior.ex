@@ -19,12 +19,16 @@ defmodule TestPersistedEntityWithoutBehavior do
     )
   end
 
-  def execute({:start, %{:title => title}}, _context) do
+  def execute_call({:start, %{:title => title}}, _context) do
     {[{:started, %{title: title}}], %{title: title}}
   end
 
-  def execute(:get_title, %{:state => state}) do
+  def execute_call(:get_title, %{:state => state}) do
     %{title: state.title}
+  end
+
+  def execute_cast({:start, %{:title => title}}, _context) do
+    [{:started, %{title: title}}]
   end
 
   defp on(state, {:started, %{:title => title}}) do

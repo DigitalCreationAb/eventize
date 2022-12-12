@@ -24,11 +24,19 @@ defmodule TestEntityWithoutBehavior do
     %{}
   end
 
-  def execute({:start, %{:title => title}}, _context) do
+  def execute_call({:start, %{:title => title}}, _context) do
     {[{:started, %{title: title}}], %{title: title}}
   end
 
-  def execute(:stop, %{:id => id}) do
+  def execute_call(:stop, %{:id => id}) do
+    [{:stopped, %{id: id}}]
+  end
+
+  def execute_cast({:start, %{:title => title}}, _context) do
+    [{:started, %{title: title}}]
+  end
+
+  def execute_cast(:stop, %{:id => id}) do
     [{:stopped, %{id: id}}]
   end
 

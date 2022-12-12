@@ -6,16 +6,24 @@ defmodule TestEntityWithBehavior do
   defmodule NotStarted do
     @moduledoc false
 
-    def execute({:start, %{:title => title}}, _context) do
+    def execute_call({:start, %{:title => title}}, _context) do
       {[{:started, %{title: title}}], %{title: title}}
+    end
+
+    def execute_cast({:start, %{:title => title}}, _context) do
+      [{:started, %{title: title}}]
     end
   end
 
   defmodule Started do
     @moduledoc false
 
-    def execute({:start, %{:title => title}}, _context) do
+    def execute_call({:start, %{:title => title}}, _context) do
       {[{:second_title_updated, %{secondTitle: title}}], %{title: title}}
+    end
+
+    def execute_cast({:start, %{:title => title}}, _context) do
+      [{:second_title_updated, %{secondTitle: title}}]
     end
   end
 
