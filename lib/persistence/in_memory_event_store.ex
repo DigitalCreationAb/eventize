@@ -15,14 +15,14 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     defstruct streams: %{}
   end
 
-  def start_link(args, options \\ []) do
-    GenServer.start_link(__MODULE__, args, options)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, :ok, args)
   end
 
   @doc """
   Initializes a InMemoryEventStore with a empty state.
   """
-  def init(_) do
+  def init(:ok) do
     {:ok, %State{streams: %{}}}
   end
 

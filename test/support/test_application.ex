@@ -4,10 +4,12 @@ defmodule TestApplication do
   use Application
 
   def start(_type, _args) do
-    TestEntitiesSupervisor.start_link()
-
-    Reactive.Persistence.InMemoryEventStore.start_link([],
-      name: Reactive.Persistence.InMemoryEventStore
-    )
+    children = [
+      TestEntitiesSupervisor,
+      {Reactive.Persistence.InMemoryEventStore, name: Reactive.Persistence.InMemoryEventStore}
+    ]
+    
+    opts = [strategy: :one_for_one, name: TestApplication.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 end
