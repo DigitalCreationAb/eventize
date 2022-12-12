@@ -39,10 +39,10 @@ defmodule Reactive.Entities.Entity do
           events when is_list(events) ->
             {state, behavior, life_span} = apply_events(events, entity_state)
 
-            {%{id: id, state: state, behavior: behavior}, life_span}
+            {%{entity_state | state: state, behavior: behavior}, life_span}
 
           _ ->
-            {%{id: id, state: state, behavior: behavior}, :infinity}
+            {entity_state, :infinity}
         end
 
         case life_span do
@@ -60,18 +60,18 @@ defmodule Reactive.Entities.Entity do
           {events, response} when is_list(events) ->
             {state, behavior, life_span} = apply_events(events, entity_state)
 
-            {response, %{id: id, state: state, behavior: behavior}, life_span}
+            {response, %{entity_state | state: state, behavior: behavior}, life_span}
 
           events when is_list(events) ->
             {state, behavior, life_span} = apply_events(events, entity_state)
 
-            {nil, %{id: id, state: state, behavior: behavior}, life_span}
+            {nil, %{entity_state | state: state, behavior: behavior}, life_span}
 
           response ->
-            {response, %{id: id, state: state, behavior: behavior}, :infinity}
+            {response, entity_state, :infinity}
 
           _ ->
-            {nil, %{id: id, state: state, behavior: behavior}, :infinity}
+            {nil, entity_state, :infinity}
         end
 
         case life_span do

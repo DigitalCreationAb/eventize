@@ -3,18 +3,18 @@ defmodule TestPersistedEntityWithoutBehavior do
 
   use Reactive.Entities.PersistedEntity
 
-  def child_spec(id) do
+  def child_spec(%{:id => id} = data) do
     %{
       id: id,
-      start: {__MODULE__, :start_link, [id]},
+      start: {__MODULE__, :start_link, [data]},
       type: :worker
     }
   end
 
-  def start_link(id) do
+  def start_link(%{:id => id} = data) do
     GenServer.start_link(
       __MODULE__,
-      id,
+      data,
       name: {:global, id}
     )
   end
