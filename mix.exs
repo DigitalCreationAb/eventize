@@ -50,7 +50,8 @@ defmodule Reactive.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:elixir_uuid, "~> 1.2"},
+      {:jason, "~> 1.3"},
+      {:elixir_uuid, "~> 1.2", only: :test, runtime: false},
       {:ex_doc, "~> 0.29.0", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
     ]

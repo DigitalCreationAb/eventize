@@ -5,10 +5,6 @@ defmodule InMemoryEventStoreTest do
   alias Reactive.Persistence.EventBus.EventData
   doctest InMemoryEventStore
 
-  defmodule TitleUpdated do
-    defstruct [:title]
-  end
-
   describe "When storing single tuple event" do
     setup do
       stream_name = UUID.uuid4()

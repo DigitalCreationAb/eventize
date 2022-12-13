@@ -12,7 +12,8 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     State is a struct that keeps all stored events in their streams.
     """
 
-    defstruct streams: %{}
+    defstruct streams: %{},
+              serializer: Reactive.Serialization.JasonSerializer
   end
 
   defmodule StoredEvent do
@@ -23,13 +24,23 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     defstruct [:type, :payload, :meta_data, :sequence_number]
   end
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, :ok, args)
+  def start_link(opts) do
+    {start_opts, event_store_opts} =
+      Keyword.split(opts, [:debug, :name, :timeout, :spawn_opt, :hibernate_after])
+
+    case Keyword.fetch(event_store_opts, :serializer) do
+      {:ok, serializer} -> GenServer.start_link(__MODULE__, %{serializer: serializer}, start_opts)
+      _ -> GenServer.start_link(__MODULE__, :ok, start_opts)
+    end
   end
 
   @doc """
-  Initializes a InMemoryEventStore with a empty state.
+  Initializes a InMemoryEventStore with a optional serializer.
   """
+  def init(%{serializer: serializer}) do
+    {:ok, %State{streams: %{}, serializer: serializer}}
+  end
+
   def init(:ok) do
     {:ok, %State{streams: %{}}}
   end
@@ -37,7 +48,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
   @doc """
   Load all events from a specific stream.
   """
-  def load(id, start, max_count, %State{streams: streams}) do
+  def load(id, start, max_count, %State{streams: streams, serializer: serializer}) do
     case Map.get(streams, id) do
       nil ->
         {:ok, 0, []}
@@ -51,7 +62,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
 
         deserialized_events =
           events
-          |> Enum.map(fn event -> deserialize(event) end)
+          |> Enum.map(fn event -> deserialize(event, serializer) end)
           |> Enum.reverse()
           |> Enum.filter(fn event ->
             case start do
@@ -74,7 +85,12 @@ defmodule Reactive.Persistence.InMemoryEventStore do
   Appends a list of events to a stream.
   If the stream doesn't exist it will be created.
   """
-  def append(id, events, %State{streams: streams} = state, expected_version) do
+  def append(
+        id,
+        events,
+        %State{streams: streams, serializer: serializer} = state,
+        expected_version
+      ) do
     current_events =
       case Map.get(streams, id) do
         nil -> []
@@ -91,7 +107,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
       serialized_events =
         events
         |> Enum.with_index(latest_sequence_number + 1)
-        |> Enum.map(fn {event, seq} -> serialize(event, seq) end)
+        |> Enum.map(fn {event, seq} -> serialize(event, seq, serializer) end)
 
       new_events = prepend(current_events, serialized_events)
 
@@ -129,47 +145,65 @@ defmodule Reactive.Persistence.InMemoryEventStore do
   defp prepend(list, []), do: list
   defp prepend(list, [item | remainder]), do: prepend([item | list], remainder)
 
-  defp serialize({{type, payload}, meta_data}, sequence_number) when is_atom(type) do
-    %StoredEvent{
-      type: type,
-      payload: payload,
-      sequence_number: sequence_number,
-      meta_data: meta_data
-    }
+  defp serialize({{type, payload}, meta_data}, sequence_number, serializer) when is_atom(type) do
+    with {:ok, serialized_payload} <- serializer.serialize(payload),
+         {:ok, serialized_meta_data} <- serializer.serialize(meta_data) do
+      %StoredEvent{
+        type: nil,
+        payload: {type, serialized_payload},
+        sequence_number: sequence_number,
+        meta_data: serialized_meta_data
+      }
+    end
   end
 
-  defp serialize({event, meta_data}, sequence_number) when is_struct(event) do
-    %StoredEvent{
-      type: event.__struct__,
-      payload: event,
-      sequence_number: sequence_number,
-      meta_data: meta_data
-    }
+  defp serialize({event, meta_data}, sequence_number, serializer) when is_struct(event) do
+    with {:ok, serialized_payload} <- serializer.serialize(event),
+         {:ok, serialized_meta_data} <- serializer.serialize(meta_data) do
+      %StoredEvent{
+        type: event.__struct__,
+        payload: serialized_payload,
+        sequence_number: sequence_number,
+        meta_data: serialized_meta_data
+      }
+    end
   end
 
-  defp deserialize(%StoredEvent{
-         payload: payload,
-         meta_data: meta_data,
-         sequence_number: sequence_number
-       })
-       when is_struct(payload) do
-    %Reactive.Persistence.EventBus.EventData{
-      payload: payload,
-      meta_data: meta_data,
-      sequence_number: sequence_number
-    }
+  defp deserialize(
+         %StoredEvent{
+           type: nil,
+           payload: {type, payload},
+           meta_data: meta_data,
+           sequence_number: sequence_number
+         },
+         serializer
+       ) do
+    with {:ok, deserialized_payload} <- serializer.deserialize(payload),
+         {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
+      %Reactive.Persistence.EventBus.EventData{
+        payload: {type, deserialized_payload},
+        meta_data: deserialized_meta_data,
+        sequence_number: sequence_number
+      }
+    end
   end
 
-  defp deserialize(%StoredEvent{
-         type: type,
-         payload: payload,
-         meta_data: meta_data,
-         sequence_number: sequence_number
-       }) do
-    %Reactive.Persistence.EventBus.EventData{
-      payload: {type, payload},
-      sequence_number: sequence_number,
-      meta_data: meta_data
-    }
+  defp deserialize(
+         %StoredEvent{
+           type: type,
+           payload: payload,
+           meta_data: meta_data,
+           sequence_number: sequence_number
+         },
+         serializer
+       ) do
+    with {:ok, deserialized_payload} <- serializer.deserialize(payload, type),
+         {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
+      %Reactive.Persistence.EventBus.EventData{
+        payload: deserialized_payload,
+        meta_data: deserialized_meta_data,
+        sequence_number: sequence_number
+      }
+    end
   end
 end
