@@ -10,13 +10,16 @@ defmodule Reactive.Entities.PersistedEntity do
       alias Reactive.Entities.Entity
       alias Reactive.Persistence.EventStore
 
+      @before_compile Reactive.Entities.PersistedEntity
+
       @doc """
       Initializes the PersistedEntity with the initial state.
       Then it uses `:continue` to read the events from the
       `Reactive.Persistence.EventStore` in the background.
       """
-      def init(%{:id => id, :event_bus => event_bus}) do
-        entity_state = Map.put(initialize_state(id), :event_bus, event_bus)
+      def init(%{id: id, event_bus: event_bus}) do
+        entity_state =
+          initialize_state(id) |> Map.put(:event_bus, event_bus) |> Map.put(:version, 0)
 
         {:ok, entity_state, {:continue, :initialize_events}}
       end
@@ -26,29 +29,39 @@ defmodule Reactive.Entities.PersistedEntity do
       events for the current entity and runs all event handler
       to updated the process state.
       """
-      def handle_continue(:initialize_events, entity_state) do
-        events = load_events(entity_state)
+      def handle_continue(
+            :initialize_events,
+            %{id: id, event_bus: event_bus, state: state, behavior: behavior} = entity_state
+          ) do
+        {:ok, version, events} = event_bus.load_events(get_stream_name(id))
 
         {new_state, new_behavior, _} =
-          run_event_handlers(events, entity_state.state, entity_state.behavior)
+          run_event_handlers(events |> Enum.map(fn event -> event.payload end), state, behavior)
 
-        {:noreply, %{entity_state | behavior: new_behavior, state: new_state}}
+        {:noreply, %{entity_state | behavior: new_behavior, state: new_state, version: version}}
       end
 
-      defp load_events(%{:id => id, :event_bus => event_bus}) do
-        event_bus.load_events(get_stream_name(id))
-      end
-
-      defp apply_events(events, %{
-             :id => id,
-             :state => state,
-             :behavior => behavior,
-             :event_bus => event_bus
-           })
+      defp apply_events(
+             events,
+             %{
+               id: id,
+               state: state,
+               behavior: behavior,
+               event_bus: event_bus,
+               version: version
+             } = entity_state
+           )
            when is_list(events) do
-        event_bus.append_events(get_stream_name(id), events)
+        {:ok, version} =
+          event_bus.append_events(
+            get_stream_name(id),
+            events |> Enum.map(fn event -> {event, get_event_meta_data(event)} end),
+            version
+          )
 
-        run_event_handlers(events, state, behavior)
+        {new_state, new_behavior, life_span} = run_event_handlers(events, state, behavior)
+
+        {%{entity_state | state: new_state, behavior: new_behavior, version: version}, life_span}
       end
 
       defp get_stream_name(id) do
@@ -61,6 +74,14 @@ defmodule Reactive.Entities.PersistedEntity do
       end
 
       defoverridable get_stream_name: 1
+    end
+  end
+
+  defmacro __before_compile__(_env) do
+    quote do
+      defp get_event_meta_data(_event), do: %{}
+
+      defoverridable get_event_meta_data: 1
     end
   end
 end

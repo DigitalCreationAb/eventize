@@ -4,17 +4,51 @@ defmodule Reactive.Persistence.EventStore do
   events for `Reactive.Entities.Entity` instances.
   """
 
+  alias Reactive.Persistence.EventBus.EventData
+
   @doc """
   A callback used to load all the events for a stream.
   """
-  @callback load(id :: String.t(), state :: map) ::
-              {events :: Enumerable.t(), new_state :: map} | Enumerable.t()
+  @callback load(
+              stream_name :: String.t(),
+              start :: :start | non_neg_integer(),
+              max_count :: :all | non_neg_integer(),
+              state :: map()
+            ) ::
+              {:ok, version :: non_neg_integer(), events :: list(EventData), new_state :: map()}
+              | {:ok, version :: non_neg_integer(), events :: list(EventData)}
+              | {:error, term(), new_state :: map()}
+              | {:error, term()}
 
   @doc """
   A callback used to append new events to a stream.
   """
-  @callback append(id :: String.t(), events :: Enumerable.t(), state :: map) ::
-              {:ok, new_state :: map} | :ok | {:error, error :: term}
+  @callback append(
+              stream_name :: String.t(),
+              events :: list({event :: term(), meta_data :: map()}),
+              state :: map(),
+              expected_version :: :any | non_neg_integer()
+            ) ::
+              {:ok, version :: non_neg_integer(), new_state :: map()}
+              | {:ok, version :: non_neg_integer()}
+              | {:error, term(), new_state :: map()}
+              | {:error, term()}
+
+  defmodule AppendCommand do
+    @moduledoc """
+    Defines a append command struct.
+    """
+
+    defstruct [:stream_name, :events, :expected_version]
+  end
+
+  defmodule LoadQuery do
+    @moduledoc """
+    Defines a load query struct.
+    """
+
+    defstruct [:stream_name, :start, :max_count]
+  end
 
   defmacro __using__(_) do
     quote do
@@ -25,24 +59,50 @@ defmodule Reactive.Persistence.EventStore do
       @doc """
       Loads all events for a stream.
       """
-      def handle_call({:load, id}, _from, state) do
-        case load(id, state) do
-          {events, new_state} ->
-            {:reply, events, new_state}
+      def handle_call(
+            %LoadQuery{stream_name: stream_name, start: start, max_count: max_count},
+            _from,
+            state
+          ) do
+        case load(stream_name, start, max_count, state) do
+          {:ok, version, events, new_state} ->
+            {:reply, {:ok, version, events}, new_state}
 
-          events ->
-            {:reply, events, state}
+          {:ok, version, events} ->
+            {:reply, {:ok, version, events}, state}
+
+          {:error, error, new_state} ->
+            {:reply, {:error, error}, new_state}
+
+          {:error, error} ->
+            {:reply, {:error, error}, state}
         end
       end
 
       @doc """
       Appends a list of events to a stream.
       """
-      def handle_call({:append, id, events}, _from, state) do
-        case append(id, events, state) do
-          {:ok, new_state} -> {:reply, :ok, new_state}
-          :ok -> {:reply, :ok, state}
-          {:error, error} -> {:reply, {:error, error}, state}
+      def handle_call(
+            %AppendCommand{
+              stream_name: stream_name,
+              events: events,
+              expected_version: expected_version
+            },
+            _from,
+            state
+          ) do
+        case append(stream_name, events, state, expected_version) do
+          {:ok, version, new_state} ->
+            {:reply, {:ok, version}, new_state}
+
+          {:ok, version} ->
+            {:reply, {:ok, version}, state}
+
+          {:error, error, new_state} ->
+            {:reply, {:error, error}, new_state}
+
+          {:error, error} ->
+            {:reply, {:error, error}, state}
         end
       end
     end

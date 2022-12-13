@@ -6,8 +6,7 @@ defmodule TestEntityWithoutBehavior do
   def child_spec(id) do
     %{
       id: id,
-      start: {__MODULE__, :start_link, [id]},
-      type: :worker
+      start: {__MODULE__, :start_link, [id]}
     }
   end
 
@@ -24,23 +23,23 @@ defmodule TestEntityWithoutBehavior do
     %{}
   end
 
-  def execute_call({:start, %{:title => title}}, _context) do
+  def execute_call({:start, %{title: title}}, _from, _context) do
     {[{:started, %{title: title}}], %{title: title}}
   end
 
-  def execute_call(:stop, %{:id => id}) do
+  def execute_call(:stop, _from, %{id: id}) do
     [{:stopped, %{id: id}}]
   end
 
-  def execute_cast({:start, %{:title => title}}, _context) do
+  def execute_cast({:start, %{title: title}}, _context) do
     [{:started, %{title: title}}]
   end
 
-  def execute_cast(:stop, %{:id => id}) do
+  def execute_cast(:stop, %{id: id}) do
     [{:stopped, %{id: id}}]
   end
 
-  defp on(state, {:started, %{:title => title}}) do
+  defp on({:started, %{title: title}}, state) do
     Map.put(state, :title, title)
   end
 

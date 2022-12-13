@@ -25,7 +25,7 @@ defmodule Reactive.Entities.Entity do
       @doc """
       Initializes the entity with the initial state.
       """
-      def init(%{:id => id}) do
+      def init(%{id: id}) do
         {:ok, initialize_state(id)}
       end
 
@@ -34,16 +34,20 @@ defmodule Reactive.Entities.Entity do
       @doc """
       Handle any command sent to the entity.
       """
-      def handle_cast({:execute, command}, %{:id => id, :state => state, :behavior => behavior} = entity_state) do
-        {new_state, life_span} = case behavior.execute_cast(command, %{id: id, state: state}) do
-          events when is_list(events) ->
-            {state, behavior, life_span} = apply_events(events, entity_state)
+      def handle_cast(
+            {:execute, command},
+            %{id: id, state: state, behavior: behavior} = entity_state
+          ) do
+        {new_state, life_span} =
+          case behavior.execute_cast(command, %{id: id, state: state}) do
+            events when is_list(events) ->
+              {state, life_span} = apply_events(events, entity_state)
 
-            {%{entity_state | state: state, behavior: behavior}, life_span}
+              {state, life_span}
 
-          _ ->
-            {entity_state, :infinity}
-        end
+            _ ->
+              {entity_state, :infinity}
+          end
 
         case life_span do
           :stop -> {:stop, :normal, new_state}
@@ -55,24 +59,29 @@ defmodule Reactive.Entities.Entity do
       @doc """
       Handle any command sent to the entity where the sender wants a response back.
       """
-      def handle_call({:execute, command}, _from, %{:id => id, :state => state, :behavior => behavior} = entity_state) do
-        {response, new_state, life_span} = case behavior.execute_call(command, %{id: id, state: state}) do
-          {events, response} when is_list(events) ->
-            {state, behavior, life_span} = apply_events(events, entity_state)
+      def handle_call(
+            {:execute, command},
+            from,
+            %{id: id, state: state, behavior: behavior} = entity_state
+          ) do
+        {response, new_state, life_span} =
+          case behavior.execute_call(command, from, %{id: id, state: state}) do
+            {events, response} when is_list(events) ->
+              {state, life_span} = apply_events(events, entity_state)
 
-            {response, %{entity_state | state: state, behavior: behavior}, life_span}
+              {response, state, life_span}
 
-          events when is_list(events) ->
-            {state, behavior, life_span} = apply_events(events, entity_state)
+            events when is_list(events) ->
+              {state, life_span} = apply_events(events, entity_state)
 
-            {nil, %{entity_state | state: state, behavior: behavior}, life_span}
+              {:ok, state, life_span}
 
-          response ->
-            {response, entity_state, :infinity}
+            response ->
+              {response, entity_state, :infinity}
 
-          _ ->
-            {nil, entity_state, :infinity}
-        end
+            _ ->
+              {:ok, entity_state, :infinity}
+          end
 
         case life_span do
           :stop -> {:stop, :normal, response, new_state}
@@ -86,7 +95,7 @@ defmodule Reactive.Entities.Entity do
           nil ->
             %{id: id, behavior: __MODULE__, state: nil}
 
-          {behavior, initial_state} ->
+          {behavior, initial_state} when is_atom(behavior) ->
             %{id: id, behavior: behavior, state: initial_state}
 
           behavior when is_atom(behavior) ->
@@ -97,9 +106,11 @@ defmodule Reactive.Entities.Entity do
         end
       end
 
-      defp apply_events(events, %{:state => state, :behavior => behavior})
+      defp apply_events(events, %{state: state, behavior: behavior} = entity_state)
            when is_list(events) do
-        run_event_handlers(events, state, behavior)
+        {new_state, new_behavior, life_span} = run_event_handlers(events, state, behavior)
+
+        {%{entity_state | state: new_state, behavior: new_behavior}, life_span}
       end
 
       defoverridable apply_events: 2
@@ -107,7 +118,7 @@ defmodule Reactive.Entities.Entity do
       defp run_event_handlers(events, state, current_behavior) when is_list(events) do
         {new_state, behavior} =
           Enum.reduce(events, {state, current_behavior}, fn event, {state, behavior} ->
-            case on(state, event) do
+            case on(event, state) do
               {new_state, nil} -> {new_state, behavior}
               {new_state, new_behavior} -> {new_state, new_behavior}
               new_state -> {new_state, behavior}
@@ -129,12 +140,11 @@ defmodule Reactive.Entities.Entity do
 
   defmacro __before_compile__(_env) do
     quote do
-      @impl true
       def start(_id), do: %{}
 
       defoverridable start: 1
 
-      defp on(state, _event), do: state
+      defp on(_event, state), do: state
 
       defp get_lifespan(_event, _state), do: :keep
     end

@@ -8,7 +8,7 @@ defmodule TestApplication do
       TestEntitiesSupervisor,
       {Reactive.Persistence.InMemoryEventStore, name: Reactive.Persistence.InMemoryEventStore}
     ]
-    
+
     opts = [strategy: :one_for_one, name: TestApplication.Supervisor]
     Supervisor.start_link(children, opts)
   end
