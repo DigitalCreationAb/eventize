@@ -34,6 +34,9 @@ defmodule Reactive.Persistence.EventStore do
               | {:error, term(), new_state :: map()}
               | {:error, term()}
 
+  @callback delete(stream_name :: String.t(), version :: non_neg_integer(), state :: map()) ::
+              :ok | {:ok, new_state :: map()} | {:error, term(), map()} | {:error, term()}
+
   defmodule AppendCommand do
     @moduledoc """
     Defines a append command struct.
@@ -97,6 +100,22 @@ defmodule Reactive.Persistence.EventStore do
 
           {:ok, version} ->
             {:reply, {:ok, version}, state}
+
+          {:error, error, new_state} ->
+            {:reply, {:error, error}, new_state}
+
+          {:error, error} ->
+            {:reply, {:error, error}, state}
+        end
+      end
+
+      def handle_call({:delete_events, stream_name, version}, _from, state) do
+        case delete(stream_name, version, state) do
+          :ok ->
+            {:reply, :ok, state}
+
+          {:ok, new_state} ->
+            {:reply, :ok, new_state}
 
           {:error, error, new_state} ->
             {:reply, {:error, error}, new_state}

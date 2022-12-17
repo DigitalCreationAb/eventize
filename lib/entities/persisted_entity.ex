@@ -24,18 +24,13 @@ defmodule Reactive.Entities.PersistedEntity do
         {:ok, entity_state, {:continue, :initialize_events}}
       end
 
-      @doc """
-      Uses the `Reactive.Persistence.EventStore` to load all
-      events for the current entity and runs all event handler
-      to updated the process state.
-      """
       def handle_continue(
             :initialize_events,
             %{id: id, event_bus: event_bus, state: state, behavior: behavior} = entity_state
           ) do
         {:ok, version, events} = event_bus.load_events(get_stream_name(id))
 
-        {new_state, new_behavior, _} =
+        {new_state, new_behavior} =
           run_event_handlers(events |> Enum.map(fn event -> event.payload end), state, behavior)
 
         {:noreply, %{entity_state | behavior: new_behavior, state: new_state, version: version}}
@@ -59,9 +54,15 @@ defmodule Reactive.Entities.PersistedEntity do
             version
           )
 
-        {new_state, new_behavior, life_span} = run_event_handlers(events, state, behavior)
+        {new_state, new_behavior} = run_event_handlers(events, state, behavior)
 
-        {%{entity_state | state: new_state, behavior: new_behavior, version: version}, life_span}
+        %{entity_state | state: new_state, behavior: new_behavior, version: version}
+      end
+
+      defp run_cleanup({:delete_events, version}, current_return, %{id: id, event_bus: event_bus}) do
+        :ok = event_bus.delete(get_stream_name(id), version)
+
+        current_return
       end
 
       defp get_stream_name(id) do

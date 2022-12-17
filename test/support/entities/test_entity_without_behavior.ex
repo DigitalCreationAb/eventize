@@ -43,7 +43,7 @@ defmodule TestEntityWithoutBehavior do
     Map.put(state, :title, title)
   end
 
-  defp get_lifespan({:stopped, _data}, _state) do
+  defp cleanup({:stopped, _data}, _state) do
     :stop
   end
 end

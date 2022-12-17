@@ -24,4 +24,7 @@ defmodule Reactive.Persistence.EventBus do
               expected_version :: :any | non_neg_integer()
             ) ::
               {:ok, version :: non_neg_integer()} | {:error, term()}
+
+  @callback delete(stream_name :: String.t(), version :: non_neg_integer()) ::
+              :ok | {:error, term()}
 end

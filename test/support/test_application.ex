@@ -6,7 +6,7 @@ defmodule TestApplication do
   def start(_type, _args) do
     children = [
       TestEntitiesSupervisor,
-      {Reactive.Persistence.InMemoryEventStore, name: Reactive.Persistence.InMemoryEventStore}
+      {Reactive.Persistence.InMemoryEventStore, name: Reactive.Persistence.EventStore}
     ]
 
     opts = [strategy: :one_for_one, name: TestApplication.Supervisor]

@@ -12,7 +12,7 @@ defmodule Reactive.Entities.Entity do
   @doc """
   A callback used to start a entity.
   """
-  @callback start(id :: Any) :: {:atom, %{}} | :atom | %{} | nil
+  @callback start(id :: String.t()) :: {:atom, map()} | :atom | map() | nil
 
   defmacro __using__(_) do
     quote do
@@ -38,22 +38,16 @@ defmodule Reactive.Entities.Entity do
             {:execute, command},
             %{id: id, state: state, behavior: behavior} = entity_state
           ) do
-        {new_state, life_span} =
+        {new_state, events} =
           case behavior.execute_cast(command, %{id: id, state: state}) do
             events when is_list(events) ->
-              {state, life_span} = apply_events(events, entity_state)
-
-              {state, life_span}
+              {apply_events(events, entity_state), events}
 
             _ ->
-              {entity_state, :infinity}
+              {entity_state, []}
           end
 
-        case life_span do
-          :stop -> {:stop, :normal, new_state}
-          {:stop, reason} -> {:stop, reason, new_state}
-          life_span -> {:noreply, new_state, life_span}
-        end
+        handle_cleanup({new_state, events}, {:noreply, new_state})
       end
 
       @doc """
@@ -64,29 +58,70 @@ defmodule Reactive.Entities.Entity do
             from,
             %{id: id, state: state, behavior: behavior} = entity_state
           ) do
-        {response, new_state, life_span} =
+        {response, new_state, events} =
           case behavior.execute_call(command, from, %{id: id, state: state}) do
             {events, response} when is_list(events) ->
-              {state, life_span} = apply_events(events, entity_state)
+              state = apply_events(events, entity_state)
 
-              {response, state, life_span}
+              {response, state, events}
 
             events when is_list(events) ->
-              {state, life_span} = apply_events(events, entity_state)
+              state = apply_events(events, entity_state)
 
-              {:ok, state, life_span}
+              {:ok, state, events}
 
             response ->
-              {response, entity_state, :infinity}
+              {response, entity_state, []}
 
             _ ->
-              {:ok, entity_state, :infinity}
+              {:ok, entity_state, []}
           end
 
-        case life_span do
-          :stop -> {:stop, :normal, response, new_state}
-          {:stop, reason} -> {:stop, reason, response, new_state}
-          life_span -> {:reply, response, new_state, life_span}
+        handle_cleanup({new_state, events}, {:reply, response, new_state})
+      end
+
+      defp handle_cleanup({entity_state, events}, default_return) do
+        events
+        |> Enum.map(fn event -> cleanup(event, entity_state) end)
+        |> Enum.map(fn cleanup_data ->
+          case cleanup_data do
+            list when is_list(list) ->
+              list
+
+            item ->
+              [item]
+          end
+        end)
+        |> Enum.concat()
+        |> Enum.reduce(default_return, fn cleanup, current_response ->
+          run_cleanup(cleanup, current_response, entity_state)
+        end)
+      end
+
+      defoverridable handle_cleanup: 2
+
+      defp run_cleanup(:stop, current_return, entity_state),
+        do: run_cleanup({:stop, :normal}, current_return, entity_state)
+
+      defp run_cleanup({:stop, reason}, current_return, _entity_state) do
+        case current_return do
+          {:reply, reply, new_state} ->
+            {:stop, reason, reply, new_state}
+
+          {:reply, reply, new_state, _} ->
+            {:stop, reason, reply, new_state}
+
+          {:noreply, new_state} ->
+            {:stop, reason, new_state}
+
+          {:noreply, new_state, _} ->
+            {:stop, reason, new_state}
+
+          {:stop, _, reply, new_state} ->
+            {:stop, reason, reply, new_state}
+
+          {:stop, _, new_state} ->
+            {:stop, reason, new_state}
         end
       end
 
@@ -108,32 +143,21 @@ defmodule Reactive.Entities.Entity do
 
       defp apply_events(events, %{state: state, behavior: behavior} = entity_state)
            when is_list(events) do
-        {new_state, new_behavior, life_span} = run_event_handlers(events, state, behavior)
+        {new_state, new_behavior} = run_event_handlers(events, state, behavior)
 
-        {%{entity_state | state: new_state, behavior: new_behavior}, life_span}
+        %{entity_state | state: new_state, behavior: new_behavior}
       end
 
       defoverridable apply_events: 2
 
       defp run_event_handlers(events, state, current_behavior) when is_list(events) do
-        {new_state, behavior} =
-          Enum.reduce(events, {state, current_behavior}, fn event, {state, behavior} ->
-            case on(event, state) do
-              {new_state, nil} -> {new_state, behavior}
-              {new_state, new_behavior} -> {new_state, new_behavior}
-              new_state -> {new_state, behavior}
-            end
-          end)
-
-        life_span =
-          Enum.reduce(events, :infinity, fn event, current ->
-            case get_lifespan(event, new_state) do
-              :keep -> current
-              new_life_span -> new_life_span
-            end
-          end)
-
-        {new_state, behavior, life_span}
+        Enum.reduce(events, {state, current_behavior}, fn event, {state, behavior} ->
+          case on(event, state) do
+            {new_state, nil} -> {new_state, behavior}
+            {new_state, new_behavior} -> {new_state, new_behavior}
+            new_state -> {new_state, behavior}
+          end
+        end)
       end
     end
   end
@@ -146,7 +170,9 @@ defmodule Reactive.Entities.Entity do
 
       defp on(_event, state), do: state
 
-      defp get_lifespan(_event, _state), do: :keep
+      defp cleanup(_event, _state), do: []
+
+      defp run_cleanup(_cleanup, current_return, _state), do: current_return
     end
   end
 end

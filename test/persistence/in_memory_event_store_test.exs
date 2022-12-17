@@ -5,37 +5,75 @@ defmodule InMemoryEventStoreTest do
   alias Reactive.Persistence.EventBus.EventData
   doctest InMemoryEventStore
 
+  defmodule EventStoreTestEventBus do
+    @moduledoc false
+
+    @behaviour Reactive.Persistence.EventBus
+
+    alias Reactive.Persistence.EventStore.AppendCommand
+    alias Reactive.Persistence.EventStore.LoadQuery
+
+    def load_events(stream_name, start \\ :start, max_count \\ :all) do
+      GenServer.call(TestEventStore, %LoadQuery{
+        stream_name: stream_name,
+        start: start,
+        max_count: max_count
+      })
+    end
+
+    def append_events(stream_name, events, expected_version \\ :any) do
+      GenServer.call(TestEventStore, %AppendCommand{
+        stream_name: stream_name,
+        events: events,
+        expected_version: expected_version
+      })
+    end
+
+    def delete(stream_name, version) do
+      GenServer.call(
+        TestEventStore,
+        {:delete_events, stream_name, version}
+      )
+    end
+  end
+
+  setup_all do
+    start_supervised({Reactive.Persistence.InMemoryEventStore, name: TestEventStore})
+
+    :ok
+  end
+
   describe "When storing single tuple event" do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title"}}, %{}}])
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title"}}, %{}}])
 
       {:ok, stream_name: stream_name}
     end
 
     test "then one event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 1
     end
 
     test "then version 1 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 1
     end
 
     test "then event should have correct title", state do
       {:ok, _version, [%EventData{payload: {:title_updated, first}}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert first.title == "title"
     end
 
     test "then event should have correct sequence number", state do
       {:ok, _version, [%EventData{sequence_number: sequence_number}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 1
     end
@@ -45,7 +83,7 @@ defmodule InMemoryEventStoreTest do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [
+      EventStoreTestEventBus.append_events(stream_name, [
         {{:title_updated, %{title: "title1"}}, %{}},
         {{:title_updated, %{title: "title2"}}, %{}}
       ])
@@ -54,41 +92,41 @@ defmodule InMemoryEventStoreTest do
     end
 
     test "then two event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 2
     end
 
     test "then version 2 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 2
     end
 
     test "then first event should have correct title", state do
       {:ok, _version, [%EventData{payload: {:title_updated, first}}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert first.title == "title1"
     end
 
     test "then second event should have correct title", state do
       {:ok, _version, [_, %EventData{payload: {:title_updated, second}}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert second.title == "title2"
     end
 
     test "then first event should have correct sequence number", state do
       {:ok, _version, [%EventData{sequence_number: sequence_number}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 1
     end
 
     test "then second event should have correct sequence number", state do
       {:ok, _version, [_, %EventData{sequence_number: sequence_number}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 2
     end
@@ -98,48 +136,48 @@ defmodule InMemoryEventStoreTest do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}])
-      TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}])
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}])
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}])
 
       {:ok, stream_name: stream_name}
     end
 
     test "then two event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 2
     end
 
     test "then version 2 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 2
     end
 
     test "then first event should have correct title", state do
       {:ok, _version, [%EventData{payload: {:title_updated, first}}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert first.title == "title1"
     end
 
     test "then second event should have correct title", state do
       {:ok, _version, [_, %EventData{payload: {:title_updated, second}}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert second.title == "title2"
     end
 
     test "then first event should have correct sequence number", state do
       {:ok, _version, [%EventData{sequence_number: sequence_number}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 1
     end
 
     test "then second event should have correct sequence number", state do
       {:ok, _version, [_, %EventData{sequence_number: sequence_number}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 2
     end
@@ -149,33 +187,33 @@ defmodule InMemoryEventStoreTest do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title"}, %{}}])
+      EventStoreTestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title"}, %{}}])
 
       {:ok, stream_name: stream_name}
     end
 
     test "then one event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 1
     end
 
     test "then version 1 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 1
     end
 
     test "then event should have correct title", state do
       {:ok, _version, [%EventData{payload: %TitleUpdated{} = first}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert first.title == "title"
     end
 
     test "then event should have correct sequence number", state do
       {:ok, _version, [%EventData{sequence_number: sequence_number}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 1
     end
@@ -185,7 +223,7 @@ defmodule InMemoryEventStoreTest do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [
+      EventStoreTestEventBus.append_events(stream_name, [
         {%TitleUpdated{title: "title1"}, %{}},
         {%TitleUpdated{title: "title2"}, %{}}
       ])
@@ -194,41 +232,41 @@ defmodule InMemoryEventStoreTest do
     end
 
     test "then two event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 2
     end
 
     test "then version 2 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 2
     end
 
     test "then first event should have correct title", state do
       {:ok, _version, [%EventData{payload: %TitleUpdated{} = first}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert first.title == "title1"
     end
 
     test "then second event should have correct title", state do
       {:ok, _version, [_, %EventData{payload: %TitleUpdated{} = second}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert second.title == "title2"
     end
 
     test "then first event should have correct sequence number", state do
       {:ok, _version, [%EventData{sequence_number: sequence_number}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 1
     end
 
     test "then second event should have correct sequence number", state do
       {:ok, _version, [_, %EventData{sequence_number: sequence_number}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 2
     end
@@ -238,48 +276,48 @@ defmodule InMemoryEventStoreTest do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title1"}, %{}}])
-      TestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title2"}, %{}}])
+      EventStoreTestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title1"}, %{}}])
+      EventStoreTestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title2"}, %{}}])
 
       {:ok, stream_name: stream_name}
     end
 
     test "then two event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 2
     end
 
     test "then version 2 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 2
     end
 
     test "then first event should have correct title", state do
       {:ok, _version, [%EventData{payload: %TitleUpdated{} = first}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert first.title == "title1"
     end
 
     test "then second event should have correct title", state do
       {:ok, _version, [_, %EventData{payload: %TitleUpdated{} = second}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert second.title == "title2"
     end
 
     test "then first event should have correct sequence number", state do
       {:ok, _version, [%EventData{sequence_number: sequence_number}, _]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 1
     end
 
     test "then second event should have correct sequence number", state do
       {:ok, _version, [_, %EventData{sequence_number: sequence_number}]} =
-        TestEventBus.load_events(state.stream_name)
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 2
     end
@@ -290,23 +328,23 @@ defmodule InMemoryEventStoreTest do
       stream_name = UUID.uuid4()
 
       first_response =
-        TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
+        EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
 
       second_response =
-        TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 0)
+        EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 0)
 
       {:ok,
        stream_name: stream_name, first_response: first_response, second_response: second_response}
     end
 
     test "then one event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 1
     end
 
     test "then version 1 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 1
     end
@@ -326,23 +364,23 @@ defmodule InMemoryEventStoreTest do
       stream_name = UUID.uuid4()
 
       first_response =
-        TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
+        EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
 
       second_response =
-        TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+        EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
 
       {:ok,
        stream_name: stream_name, first_response: first_response, second_response: second_response}
     end
 
     test "then two event can be loaded", state do
-      {:ok, _version, events} = TestEventBus.load_events(state.stream_name)
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert length(events) == 2
     end
 
     test "then version 2 is returned when loading", state do
-      {:ok, version, _events} = TestEventBus.load_events(state.stream_name)
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
 
       assert version == 2
     end
@@ -360,10 +398,10 @@ defmodule InMemoryEventStoreTest do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
-      TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
 
-      response = TestEventBus.load_events(stream_name, :start, 1)
+      response = EventStoreTestEventBus.load_events(stream_name, :start, 1)
 
       {:ok, response: response}
     end
@@ -397,10 +435,10 @@ defmodule InMemoryEventStoreTest do
     setup do
       stream_name = UUID.uuid4()
 
-      TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
-      TestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
 
-      response = TestEventBus.load_events(stream_name, 2, 1)
+      response = EventStoreTestEventBus.load_events(stream_name, 2, 1)
 
       {:ok, response: response}
     end
@@ -425,6 +463,49 @@ defmodule InMemoryEventStoreTest do
 
     test "then event should have correct sequence number", state do
       {:ok, _version, [%EventData{sequence_number: sequence_number}]} = state.response
+
+      assert sequence_number == 2
+    end
+  end
+
+  describe "When storing two events and deleting version 1" do
+    setup do
+      stream_name = UUID.uuid4()
+
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
+      EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+
+      response = EventStoreTestEventBus.delete(stream_name, 1)
+
+      {:ok, stream_name: stream_name, response: response}
+    end
+
+    test "then response should be :ok", state do
+      assert state.response == :ok
+    end
+
+    test "then one event can be loaded", state do
+      {:ok, _version, events} = EventStoreTestEventBus.load_events(state.stream_name)
+
+      assert length(events) == 1
+    end
+
+    test "then version 2 is returned when loading", state do
+      {:ok, version, _events} = EventStoreTestEventBus.load_events(state.stream_name)
+
+      assert version == 2
+    end
+
+    test "then event should have correct title", state do
+      {:ok, _version, [%EventData{payload: {:title_updated, first}}]} =
+        EventStoreTestEventBus.load_events(state.stream_name)
+
+      assert first.title == "title2"
+    end
+
+    test "then event should have correct sequence number", state do
+      {:ok, _version, [%EventData{sequence_number: sequence_number}]} =
+        EventStoreTestEventBus.load_events(state.stream_name)
 
       assert sequence_number == 2
     end
