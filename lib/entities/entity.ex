@@ -41,7 +41,7 @@ defmodule Reactive.Entities.Entity do
         {new_state, events} =
           case behavior.execute_cast(command, %{id: id, state: state}) do
             events when is_list(events) ->
-              {apply_events(events, entity_state), events}
+              apply_events(events, entity_state)
 
             _ ->
               {entity_state, []}
@@ -61,12 +61,12 @@ defmodule Reactive.Entities.Entity do
         {response, new_state, events} =
           case behavior.execute_call(command, from, %{id: id, state: state}) do
             {events, response} when is_list(events) ->
-              state = apply_events(events, entity_state)
+              {state, events} = apply_events(events, entity_state)
 
               {response, state, events}
 
             events when is_list(events) ->
-              state = apply_events(events, entity_state)
+              {state, events} = apply_events(events, entity_state)
 
               {:ok, state, events}
 
@@ -78,6 +78,10 @@ defmodule Reactive.Entities.Entity do
           end
 
         handle_cleanup({new_state, events}, {:reply, response, new_state})
+      end
+
+      def handle_info(:timeout, state) do
+        {:stop, :normal, state}
       end
 
       defp handle_cleanup({entity_state, events}, default_return) do
@@ -125,6 +129,61 @@ defmodule Reactive.Entities.Entity do
         end
       end
 
+      defp run_cleanup({:timeout, timeout}, current_return, _entity_state) do
+        case current_return do
+          {:reply, reply, new_state} ->
+            {:reply, reply, new_state, timeout}
+
+          {:reply, reply, new_state, current_timeout}
+          when (is_integer(current_timeout) and timeout < current_timeout) or
+                 current_timeout == :hibernate ->
+            {:reply, reply, new_state, timeout}
+
+          {:noreply, new_state} ->
+            {:noreply, new_state, timeout}
+
+          {:noreply, new_state, current_timeout}
+          when (is_integer(current_timeout) and timeout < current_timeout) or
+                 current_timeout == :hibernate ->
+            {:noreply, new_state, timeout}
+
+          _ ->
+            current_return
+        end
+      end
+
+      defp run_cleanup(:hibernate, current_return, _entity_state) do
+        case current_return do
+          {:reply, reply, new_state} ->
+            {:reply, reply, new_state, :hibernate}
+
+          {:noreply, new_state} ->
+            {:noreply, new_state, :hibernate}
+
+          _ ->
+            current_return
+        end
+      end
+
+      defp run_cleanup({:continue, _data} = continuation, current_return, _entity_state) do
+        case current_return do
+          {:reply, reply, new_state} ->
+            {:reply, reply, new_state, continuation}
+
+          {:reply, reply, new_state, _current_timeout} ->
+            {:reply, reply, new_state, continuation}
+
+          {:noreply, new_state} ->
+            {:noreply, new_state, continuation}
+
+          {:noreply, new_state, _current_timeout} ->
+            {:noreply, new_state, continuation}
+
+          _ ->
+            current_return
+        end
+      end
+
       defp initialize_state(id) do
         case start(id) do
           nil ->
@@ -145,20 +204,26 @@ defmodule Reactive.Entities.Entity do
            when is_list(events) do
         {new_state, new_behavior} = run_event_handlers(events, state, behavior)
 
-        %{entity_state | state: new_state, behavior: new_behavior}
+        {%{entity_state | state: new_state, behavior: new_behavior}, events}
       end
 
       defoverridable apply_events: 2
 
       defp run_event_handlers(events, state, current_behavior) when is_list(events) do
         Enum.reduce(events, {state, current_behavior}, fn event, {state, behavior} ->
-          case on(event, state) do
-            {new_state, nil} -> {new_state, behavior}
+          case run_event_applier(event, state) do
+            {new_state, nil} -> {new_state, __MODULE__}
             {new_state, new_behavior} -> {new_state, new_behavior}
             new_state -> {new_state, behavior}
           end
         end)
       end
+
+      defp run_event_applier(event, state) do
+        apply_event(event, state)
+      end
+
+      defoverridable run_event_applier: 2
     end
   end
 
@@ -168,7 +233,7 @@ defmodule Reactive.Entities.Entity do
 
       defoverridable start: 1
 
-      defp on(_event, state), do: state
+      defp apply_event(_event, state), do: state
 
       defp cleanup(_event, _state), do: []
 

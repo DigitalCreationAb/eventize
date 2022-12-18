@@ -47,11 +47,11 @@ defmodule TestEntityWithBehavior do
     {NotStarted, %{}}
   end
 
-  defp on({:started, %{title: title}}, state) do
+  defp apply_event({:started, %{title: title}}, state) do
     {Map.put(state, :title, title), Started}
   end
 
-  defp on({:second_title_updated, %{secondTitle: title}}, state) do
+  defp apply_event({:second_title_updated, %{secondTitle: title}}, state) do
     Map.put(state, :secondTitle, title)
   end
 end

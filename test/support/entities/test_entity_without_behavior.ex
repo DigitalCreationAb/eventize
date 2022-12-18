@@ -39,7 +39,7 @@ defmodule TestEntityWithoutBehavior do
     [{:stopped, %{id: id}}]
   end
 
-  defp on({:started, %{title: title}}, state) do
+  defp apply_event({:started, %{title: title}}, state) do
     Map.put(state, :title, title)
   end
 

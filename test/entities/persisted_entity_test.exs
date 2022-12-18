@@ -55,4 +55,34 @@ defmodule PersistedEntityTest do
       assert state.response.title == "test"
     end
   end
+
+  describe "When starting entity and deleting previous events" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      TestCommandBus.call(
+        TestPersistedEntityWithoutBehavior,
+        entity_id,
+        {:start, %{title: "test"}}
+      )
+
+      TestCommandBus.call(
+        TestPersistedEntityWithoutBehavior,
+        entity_id,
+        :delete_previous
+      )
+
+      {:ok, stored_version, stored_events} = TestEventBus.load_events("testpersistedentitywithoutbehavior-#{entity_id}", :start, :all)
+
+      {:ok, id: entity_id, stored_version: stored_version, stored_events: stored_events}
+    end
+
+    test "then one event should be in store for entity", state do
+      assert length(state.stored_events) == 1
+    end
+
+    test "then stored version is 2", state do
+      assert state.stored_version == 2
+    end
+  end
 end

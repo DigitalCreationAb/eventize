@@ -105,7 +105,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
           {:error,
            {:expected_version_missmatch,
             %{current_version: non_neg_integer(), expected_version: non_neg_integer()}}}
-          | {:ok, non_neg_integer(),
+          | {:ok, non_neg_integer(), events :: list(Reactive.Persistence.EventBus.EventData),
              %Reactive.Persistence.InMemoryEventStore.State{
                serializer: :atom,
                streams: map
@@ -152,7 +152,8 @@ defmodule Reactive.Persistence.InMemoryEventStore do
           _ -> latest_sequence_number
         end
 
-      {:ok, version, new_state}
+      {:ok, version,
+       serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end), new_state}
     end
   end
 

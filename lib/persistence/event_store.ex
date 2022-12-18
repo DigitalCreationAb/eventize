@@ -29,8 +29,10 @@ defmodule Reactive.Persistence.EventStore do
               state :: map(),
               expected_version :: :any | non_neg_integer()
             ) ::
-              {:ok, version :: non_neg_integer(), new_state :: map()}
-              | {:ok, version :: non_neg_integer()}
+              {:ok, version :: non_neg_integer(),
+               events :: list(Reactive.Persistence.EventBus.EventData), new_state :: map()}
+              | {:ok, version :: non_neg_integer(),
+                 events :: list(Reactive.Persistence.EventBus.EventData)}
               | {:error, term(), new_state :: map()}
               | {:error, term()}
 
@@ -95,11 +97,11 @@ defmodule Reactive.Persistence.EventStore do
             state
           ) do
         case append(stream_name, events, state, expected_version) do
-          {:ok, version, new_state} ->
-            {:reply, {:ok, version}, new_state}
+          {:ok, version, events, new_state} ->
+            {:reply, {:ok, version, events}, new_state}
 
-          {:ok, version} ->
-            {:reply, {:ok, version}, state}
+          {:ok, version, events} ->
+            {:reply, {:ok, version, events}, state}
 
           {:error, error, new_state} ->
             {:reply, {:error, error}, new_state}

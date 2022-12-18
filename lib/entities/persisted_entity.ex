@@ -30,8 +30,7 @@ defmodule Reactive.Entities.PersistedEntity do
           ) do
         {:ok, version, events} = event_bus.load_events(get_stream_name(id))
 
-        {new_state, new_behavior} =
-          run_event_handlers(events |> Enum.map(fn event -> event.payload end), state, behavior)
+        {new_state, new_behavior} = run_event_handlers(events, state, behavior)
 
         {:noreply, %{entity_state | behavior: new_behavior, state: new_state, version: version}}
       end
@@ -47,16 +46,38 @@ defmodule Reactive.Entities.PersistedEntity do
              } = entity_state
            )
            when is_list(events) do
-        {:ok, version} =
+        {:ok, version, stored_events} =
           event_bus.append_events(
             get_stream_name(id),
             events |> Enum.map(fn event -> {event, get_event_meta_data(event)} end),
             version
           )
 
-        {new_state, new_behavior} = run_event_handlers(events, state, behavior)
+        {new_state, new_behavior} = run_event_handlers(stored_events, state, behavior)
 
-        %{entity_state | state: new_state, behavior: new_behavior, version: version}
+        {%{entity_state | state: new_state, behavior: new_behavior, version: version}, stored_events}
+      end
+
+      defp run_event_applier(
+             %Reactive.Persistence.EventBus.EventData{
+               payload: payload,
+               meta_data: meta_data,
+               sequence_number: sequence_number
+             },
+             state
+           ) do
+        apply_event(payload, state, Map.put(meta_data, :sequence_number, sequence_number))
+      end
+
+      defp cleanup(
+             %Reactive.Persistence.EventBus.EventData{
+               payload: payload,
+               meta_data: meta_data,
+               sequence_number: sequence_number
+             },
+             entity_state
+           ) do
+        cleanup(payload, entity_state, Map.put(meta_data, :sequence_number, sequence_number))
       end
 
       defp run_cleanup({:delete_events, version}, current_return, %{id: id, event_bus: event_bus}) do
@@ -83,6 +104,10 @@ defmodule Reactive.Entities.PersistedEntity do
       defp get_event_meta_data(_event), do: %{}
 
       defoverridable get_event_meta_data: 1
+
+      defp apply_event(event, state, _meta_data), do: apply_event(event, state)
+
+      defp cleanup(event, state, _meta_data), do: cleanup(event, state)
     end
   end
 end

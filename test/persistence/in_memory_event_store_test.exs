@@ -1,3 +1,3 @@
 defmodule InMemoryEventStoreTest do
-  use EventStoreTests, Reactive.Persistence.InMemoryEventStore
+  use Reactive.EventStoreTests, Reactive.Persistence.InMemoryEventStore
 end

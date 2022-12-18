@@ -23,7 +23,8 @@ defmodule Reactive.Persistence.EventBus do
               events :: list({event :: term(), meta_data :: map()}),
               expected_version :: :any | non_neg_integer()
             ) ::
-              {:ok, version :: non_neg_integer()} | {:error, term()}
+              {:ok, version :: non_neg_integer(), events :: list(EventData)}
+              | {:error, term()}
 
   @callback delete(stream_name :: String.t(), version :: non_neg_integer()) ::
               :ok | {:error, term()}

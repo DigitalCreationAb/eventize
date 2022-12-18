@@ -1,4 +1,4 @@
-defmodule EventStoreTests do
+defmodule Reactive.EventStoreTests do
   defmacro __using__(event_store_module) do
     quote do
       use ExUnit.Case
@@ -49,7 +49,9 @@ defmodule EventStoreTests do
         setup do
           stream_name = UUID.uuid4()
 
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title"}}, %{}}])
+          EventStoreTestEventBus.append_events(stream_name, [
+            {{:title_updated, %{title: "title"}}, %{}}
+          ])
 
           {:ok, stream_name: stream_name}
         end
@@ -138,8 +140,13 @@ defmodule EventStoreTests do
         setup do
           stream_name = UUID.uuid4()
 
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}])
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}])
+          EventStoreTestEventBus.append_events(stream_name, [
+            {{:title_updated, %{title: "title1"}}, %{}}
+          ])
+
+          EventStoreTestEventBus.append_events(stream_name, [
+            {{:title_updated, %{title: "title2"}}, %{}}
+          ])
 
           {:ok, stream_name: stream_name}
         end
@@ -278,8 +285,13 @@ defmodule EventStoreTests do
         setup do
           stream_name = UUID.uuid4()
 
-          EventStoreTestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title1"}, %{}}])
-          EventStoreTestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title2"}, %{}}])
+          EventStoreTestEventBus.append_events(stream_name, [
+            {%TitleUpdated{title: "title1"}, %{}}
+          ])
+
+          EventStoreTestEventBus.append_events(stream_name, [
+            {%TitleUpdated{title: "title2"}, %{}}
+          ])
 
           {:ok, stream_name: stream_name}
         end
@@ -330,13 +342,23 @@ defmodule EventStoreTests do
           stream_name = UUID.uuid4()
 
           first_response =
-            EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
+            EventStoreTestEventBus.append_events(
+              stream_name,
+              [{{:title_updated, %{title: "title1"}}, %{}}],
+              0
+            )
 
           second_response =
-            EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 0)
+            EventStoreTestEventBus.append_events(
+              stream_name,
+              [{{:title_updated, %{title: "title2"}}, %{}}],
+              0
+            )
 
           {:ok,
-           stream_name: stream_name, first_response: first_response, second_response: second_response}
+           stream_name: stream_name,
+           first_response: first_response,
+           second_response: second_response}
         end
 
         test "then one event can be loaded", state do
@@ -352,11 +374,12 @@ defmodule EventStoreTests do
         end
 
         test "then first response is ok", state do
-          assert {:ok, 1} = state.first_response
+          assert {:ok, 1, _} = state.first_response
         end
 
         test "then second response is error", state do
-          assert {:error, {:expected_version_missmatch, %{current_version: 1, expected_version: 0}}} =
+          assert {:error,
+                  {:expected_version_missmatch, %{current_version: 1, expected_version: 0}}} =
                    state.second_response
         end
       end
@@ -366,13 +389,23 @@ defmodule EventStoreTests do
           stream_name = UUID.uuid4()
 
           first_response =
-            EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
+            EventStoreTestEventBus.append_events(
+              stream_name,
+              [{{:title_updated, %{title: "title1"}}, %{}}],
+              0
+            )
 
           second_response =
-            EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+            EventStoreTestEventBus.append_events(
+              stream_name,
+              [{{:title_updated, %{title: "title2"}}, %{}}],
+              1
+            )
 
           {:ok,
-           stream_name: stream_name, first_response: first_response, second_response: second_response}
+           stream_name: stream_name,
+           first_response: first_response,
+           second_response: second_response}
         end
 
         test "then two event can be loaded", state do
@@ -388,11 +421,11 @@ defmodule EventStoreTests do
         end
 
         test "then first response is ok", state do
-          assert {:ok, 1} = state.first_response
+          assert {:ok, 1, _} = state.first_response
         end
 
         test "then second response is ok", state do
-          assert {:ok, 2} = state.second_response
+          assert {:ok, 2, _} = state.second_response
         end
       end
 
@@ -400,8 +433,17 @@ defmodule EventStoreTests do
         setup do
           stream_name = UUID.uuid4()
 
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+          EventStoreTestEventBus.append_events(
+            stream_name,
+            [{{:title_updated, %{title: "title1"}}, %{}}],
+            0
+          )
+
+          EventStoreTestEventBus.append_events(
+            stream_name,
+            [{{:title_updated, %{title: "title2"}}, %{}}],
+            1
+          )
 
           response = EventStoreTestEventBus.load_events(stream_name, :start, 1)
 
@@ -437,8 +479,17 @@ defmodule EventStoreTests do
         setup do
           stream_name = UUID.uuid4()
 
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+          EventStoreTestEventBus.append_events(
+            stream_name,
+            [{{:title_updated, %{title: "title1"}}, %{}}],
+            0
+          )
+
+          EventStoreTestEventBus.append_events(
+            stream_name,
+            [{{:title_updated, %{title: "title2"}}, %{}}],
+            1
+          )
 
           response = EventStoreTestEventBus.load_events(stream_name, 2, 1)
 
@@ -474,8 +525,17 @@ defmodule EventStoreTests do
         setup do
           stream_name = UUID.uuid4()
 
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title1"}}, %{}}], 0)
-          EventStoreTestEventBus.append_events(stream_name, [{{:title_updated, %{title: "title2"}}, %{}}], 1)
+          EventStoreTestEventBus.append_events(
+            stream_name,
+            [{{:title_updated, %{title: "title1"}}, %{}}],
+            0
+          )
+
+          EventStoreTestEventBus.append_events(
+            stream_name,
+            [{{:title_updated, %{title: "title2"}}, %{}}],
+            1
+          )
 
           response = EventStoreTestEventBus.delete(stream_name, 1)
 
