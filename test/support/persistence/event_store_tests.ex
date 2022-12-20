@@ -4,6 +4,7 @@ defmodule Reactive.EventStoreTests do
       use ExUnit.Case
 
       alias Reactive.Persistence.EventStore.EventData
+      alias Reactive.Persistence.EventStore.SnapshotData
 
       doctest unquote(__MODULE__)
 
@@ -38,6 +39,33 @@ defmodule Reactive.EventStoreTests do
           GenServer.call(
             TestEventStore,
             {:delete_events, %{stream_name: stream_name, version: version}}
+          )
+        end
+
+        def load_snapshot(stream_name, max_version \\ :max) do
+          GenServer.call(
+            TestEventStore,
+            {:load_snapshot, %{stream_name: stream_name, max_version: max_version}}
+          )
+        end
+
+        def append_snapshot(stream_name, snapshot, version, expected_version \\ :any) do
+          GenServer.call(
+            TestEventStore,
+            {:append_snapshot,
+             %{
+               stream_name: stream_name,
+               snapshot: snapshot,
+               version: version,
+               expected_version: expected_version
+             }}
+          )
+        end
+
+        def delete_snapshots(stream_name, version) do
+          GenServer.call(
+            TestEventStore,
+            {:delete_snapshots, %{stream_name: stream_name, version: version}}
           )
         end
       end
@@ -573,6 +601,256 @@ defmodule Reactive.EventStoreTests do
             EventStoreTestEventBus.load_events(state.stream_name)
 
           assert sequence_number == 2
+        end
+      end
+
+      describe "When storing tuple snapshot" do
+        setup do
+          stream_name = UUID.uuid4()
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {{:test_snapshot, %{title: "title"}}, %{}},
+            1
+          )
+
+          {:ok, stream_name: stream_name}
+        end
+
+        test "then snapshot can be loaded", state do
+          assert {:ok, %SnapshotData{payload: _, meta_data: _, version: _}} =
+                   EventStoreTestEventBus.load_snapshot(state.stream_name)
+        end
+
+        test "then version 1 is returned when loading", state do
+          {:ok, %SnapshotData{payload: _, meta_data: _, version: version}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert version == 1
+        end
+
+        test "then snapshot should have correct title", state do
+          {:ok,
+           %SnapshotData{payload: {:test_snapshot, %{title: title}}, meta_data: _, version: _}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert title == "title"
+        end
+      end
+
+      describe "When storing two tuple snapshots" do
+        setup do
+          stream_name = UUID.uuid4()
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {{:test_snapshot, %{title: "title1"}}, %{}},
+            1
+          )
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {{:test_snapshot, %{title: "title2"}}, %{}},
+            2
+          )
+
+          {:ok, stream_name: stream_name}
+        end
+
+        test "then latest snapshot can be loaded", state do
+          assert {:ok, %SnapshotData{payload: _, meta_data: _, version: _}} =
+                   EventStoreTestEventBus.load_snapshot(state.stream_name)
+        end
+
+        test "then version 2 is returned when loading", state do
+          {:ok, %SnapshotData{payload: _, meta_data: _, version: version}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert version == 2
+        end
+
+        test "then snapshot should have correct title", state do
+          {:ok, %SnapshotData{payload: {:test_snapshot, payload}, meta_data: _, version: _}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert payload.title == "title2"
+        end
+
+        test "then version 1 is returned when loading with max_version", state do
+          {:ok, %SnapshotData{payload: _, meta_data: _, version: version}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name, 1)
+
+          assert version == 1
+        end
+
+        test "then snapshot should have correct title when loading with max_version", state do
+          {:ok, %SnapshotData{payload: {:test_snapshot, payload}, meta_data: _, version: _}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name, 1)
+
+          assert payload.title == "title1"
+        end
+      end
+
+      describe "When storing struct snapshot" do
+        setup do
+          stream_name = UUID.uuid4()
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {%TestSnapshot{title: "title"}, %{}},
+            1
+          )
+
+          {:ok, stream_name: stream_name}
+        end
+
+        test "then snapshot can be loaded", state do
+          assert {:ok, %SnapshotData{payload: _, meta_data: _, version: _}} =
+                   EventStoreTestEventBus.load_snapshot(state.stream_name)
+        end
+
+        test "then version 1 is returned when loading", state do
+          {:ok, %SnapshotData{payload: _, meta_data: _, version: version}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert version == 1
+        end
+
+        test "then snapshot should have correct title", state do
+          {:ok, %SnapshotData{payload: %TestSnapshot{title: title}, meta_data: _, version: _}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert title == "title"
+        end
+      end
+
+      describe "When storing two struct snapshots" do
+        setup do
+          stream_name = UUID.uuid4()
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {%TestSnapshot{title: "title1"}, %{}},
+            1
+          )
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {%TestSnapshot{title: "title2"}, %{}},
+            2
+          )
+
+          {:ok, stream_name: stream_name}
+        end
+
+        test "then latest snapshot can be loaded", state do
+          assert {:ok, %SnapshotData{payload: _, meta_data: _, version: _}} =
+                   EventStoreTestEventBus.load_snapshot(state.stream_name)
+        end
+
+        test "then version 2 is returned when loading", state do
+          {:ok, %SnapshotData{payload: _, meta_data: _, version: version}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert version == 2
+        end
+
+        test "then snapshot should have correct title", state do
+          {:ok, %SnapshotData{payload: %TestSnapshot{title: title}, meta_data: _, version: _}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert title == "title2"
+        end
+
+        test "then version 1 is returned when loading with max_version", state do
+          {:ok, %SnapshotData{payload: _, meta_data: _, version: version}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name, 1)
+
+          assert version == 1
+        end
+
+        test "then snapshot should have correct title when loading with max_version", state do
+          {:ok, %SnapshotData{payload: %TestSnapshot{title: title}, meta_data: _, version: _}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name, 1)
+
+          assert title == "title1"
+        end
+      end
+
+      describe "When storing snapshot with expected version 0 when there is a event stored" do
+        setup do
+          stream_name = UUID.uuid4()
+
+          EventStoreTestEventBus.append_events(stream_name, [{{:test_event, %{}}, %{}}])
+
+          response =
+            EventStoreTestEventBus.append_snapshot(
+              stream_name,
+              {{:test_snapshot, %{title: "title1"}}, %{}},
+              1,
+              0
+            )
+
+          {:ok, stream_name: stream_name, response: response}
+        end
+
+        test "then no snapshot can be loaded", state do
+          assert {:ok, nil} = EventStoreTestEventBus.load_snapshot(state.stream_name)
+        end
+
+        test "then response is error", state do
+          assert {:error,
+                  {:expected_version_missmatch, %{current_version: 1, expected_version: 0}}} =
+                   state.response
+        end
+      end
+
+      describe "When storing two snapshots and deleting version 1" do
+        setup do
+          stream_name = UUID.uuid4()
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {{:test_snapshot, %{title: "title1"}}, %{}},
+            1
+          )
+
+          EventStoreTestEventBus.append_snapshot(
+            stream_name,
+            {{:test_snapshot, %{title: "title2"}}, %{}},
+            2
+          )
+
+          response = EventStoreTestEventBus.delete_snapshots(stream_name, 1)
+
+          {:ok, stream_name: stream_name, response: response}
+        end
+
+        test "then response should be :ok", state do
+          assert state.response == :ok
+        end
+
+        test "then latest snapshot can be loaded", state do
+          assert {:ok, %SnapshotData{payload: _, meta_data: _, version: _}} =
+                   EventStoreTestEventBus.load_snapshot(state.stream_name)
+        end
+
+        test "then version 2 is returned when loading", state do
+          {:ok, %SnapshotData{payload: _, meta_data: _, version: version}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert version == 2
+        end
+
+        test "then snapshot should have correct title", state do
+          {:ok, %SnapshotData{payload: {:test_snapshot, payload}, meta_data: _, version: _}} =
+            EventStoreTestEventBus.load_snapshot(state.stream_name)
+
+          assert payload.title == "title2"
+        end
+
+        test "then nil is returned when loading with max_version", state do
+          assert {:ok, nil} = EventStoreTestEventBus.load_snapshot(state.stream_name, 1)
         end
       end
     end
