@@ -35,7 +35,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     end
   end
 
-  @spec init(%{:serializer => :atom} | term()) ::
+  @spec init(%{serializer: :atom} | term()) ::
           {:ok, %Reactive.Persistence.InMemoryEventStore.State{serializer: :atom, streams: map}}
   @doc """
   Initializes a InMemoryEventStore with a optional serializer.
@@ -48,22 +48,19 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     {:ok, %State{streams: %{}}}
   end
 
-  @spec load(
-          String.t(),
-          :start | non_neg_integer(),
-          :all | non_neg_integer(),
-          %Reactive.Persistence.InMemoryEventStore.State{
-            serializer: :atom,
-            streams: map
-          }
-        ) :: {:ok, non_neg_integer(), list(Reactive.Persistence.EventBus.EventData)}
-  @doc """
-  Load all events from a specific stream.
-  """
-  def load(stream_name, start, max_count, %State{streams: streams, serializer: serializer}) do
+  def execute_call(
+        {:load_events,
+         %{
+           stream_name: stream_name,
+           start: start,
+           max_count: max_count
+         }},
+        _from,
+        %State{streams: streams, serializer: serializer} = state
+      ) do
     case Map.get(streams, stream_name) do
       nil ->
-        {:ok, 0, []}
+        {:reply, {:ok, 0, []}, state}
 
       events ->
         latest_sequence_number =
@@ -89,36 +86,15 @@ defmodule Reactive.Persistence.InMemoryEventStore do
             count -> deserialized_events |> Enum.slice(0, count)
           end
 
-        {:ok, latest_sequence_number, deserialized_events}
+        {:reply, {:ok, latest_sequence_number, deserialized_events}, state}
     end
   end
 
-  @spec append(
-          String.t(),
-          list({event :: term(), meta_data :: map()}),
-          %Reactive.Persistence.InMemoryEventStore.State{
-            serializer: :atom,
-            streams: map
-          },
-          :any | non_neg_integer()
-        ) ::
-          {:error,
-           {:expected_version_missmatch,
-            %{current_version: non_neg_integer(), expected_version: non_neg_integer()}}}
-          | {:ok, non_neg_integer(), events :: list(Reactive.Persistence.EventBus.EventData),
-             %Reactive.Persistence.InMemoryEventStore.State{
-               serializer: :atom,
-               streams: map
-             }}
-  @doc """
-  Appends a list of events to a stream.
-  If the stream doesn't exist it will be created.
-  """
-  def append(
-        stream_name,
-        events,
-        %State{streams: streams, serializer: serializer} = state,
-        expected_version
+  def execute_call(
+        {:append_events,
+         %{stream_name: stream_name, events: events, expected_version: expected_version}},
+        _from,
+        %State{streams: streams, serializer: serializer} = state
       ) do
     current_events =
       case Map.get(streams, stream_name) do
@@ -152,27 +128,29 @@ defmodule Reactive.Persistence.InMemoryEventStore do
           _ -> latest_sequence_number
         end
 
-      {:ok, version,
-       serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end), new_state}
+      {:reply,
+       {:ok, version,
+        serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end)}, new_state}
+    else
+      err -> {:reply, err, state}
     end
   end
 
-  @spec delete(String.t(), non_neg_integer(), %Reactive.Persistence.InMemoryEventStore.State{
-          :streams => map
-        }) ::
-          :ok
-          | {:ok, %Reactive.Persistence.InMemoryEventStore.State{:streams => map}}
-  def delete(stream_name, version, %State{streams: streams} = state) do
+  def execute_call(
+        {:delete_events, %{stream_name: stream_name, version: version}},
+        _from,
+        %State{streams: streams} = state
+      ) do
     case Map.get(streams, stream_name) do
       nil ->
-        :ok
+        {:reply, :ok, state}
 
       events ->
         new_events =
           events
           |> Enum.filter(fn event -> event.sequence_number > version end)
 
-        {:ok, %State{state | streams: Map.put(streams, stream_name, new_events)}}
+        {:reply, :ok, %State{state | streams: Map.put(streams, stream_name, new_events)}}
     end
   end
 
@@ -229,7 +207,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
        ) do
     with {:ok, deserialized_payload} <- serializer.deserialize(payload),
          {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
-      %Reactive.Persistence.EventBus.EventData{
+      %EventData{
         payload: {type, deserialized_payload},
         meta_data: deserialized_meta_data,
         sequence_number: sequence_number
@@ -248,7 +226,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
        ) do
     with {:ok, deserialized_payload} <- serializer.deserialize(payload, type),
          {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
-      %Reactive.Persistence.EventBus.EventData{
+      %EventData{
         payload: deserialized_payload,
         meta_data: deserialized_meta_data,
         sequence_number: sequence_number

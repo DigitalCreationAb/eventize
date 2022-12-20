@@ -3,38 +3,41 @@ defmodule Reactive.EventStoreTests do
     quote do
       use ExUnit.Case
 
-      alias Reactive.Persistence.EventBus.EventData
+      alias Reactive.Persistence.EventStore.EventData
 
       doctest unquote(__MODULE__)
 
       defmodule EventStoreTestEventBus do
         @moduledoc false
 
-        @behaviour Reactive.Persistence.EventBus
-
-        alias Reactive.Persistence.EventStore.AppendCommand
-        alias Reactive.Persistence.EventStore.LoadQuery
-
         def load_events(stream_name, start \\ :start, max_count \\ :all) do
-          GenServer.call(TestEventStore, %LoadQuery{
-            stream_name: stream_name,
-            start: start,
-            max_count: max_count
-          })
+          GenServer.call(
+            TestEventStore,
+            {:load_events,
+             %{
+               stream_name: stream_name,
+               start: start,
+               max_count: max_count
+             }}
+          )
         end
 
         def append_events(stream_name, events, expected_version \\ :any) do
-          GenServer.call(TestEventStore, %AppendCommand{
-            stream_name: stream_name,
-            events: events,
-            expected_version: expected_version
-          })
-        end
-
-        def delete(stream_name, version) do
           GenServer.call(
             TestEventStore,
-            {:delete_events, stream_name, version}
+            {:append_events,
+             %{
+               stream_name: stream_name,
+               events: events,
+               expected_version: expected_version
+             }}
+          )
+        end
+
+        def delete_events(stream_name, version) do
+          GenServer.call(
+            TestEventStore,
+            {:delete_events, %{stream_name: stream_name, version: version}}
           )
         end
       end
@@ -537,7 +540,7 @@ defmodule Reactive.EventStoreTests do
             1
           )
 
-          response = EventStoreTestEventBus.delete(stream_name, 1)
+          response = EventStoreTestEventBus.delete_events(stream_name, 1)
 
           {:ok, stream_name: stream_name, response: response}
         end

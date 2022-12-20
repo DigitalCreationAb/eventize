@@ -72,7 +72,16 @@ defmodule PersistedEntityTest do
         :delete_previous
       )
 
-      {:ok, stored_version, stored_events} = TestEventBus.load_events("testpersistedentitywithoutbehavior-#{entity_id}", :start, :all)
+      {:ok, stored_version, stored_events} =
+        GenServer.call(
+          Reactive.Persistence.EventStore,
+          {:load_events,
+           %{
+             stream_name: "testpersistedentitywithoutbehavior-#{entity_id}",
+             start: :start,
+             max_count: :all
+           }}
+        )
 
       {:ok, id: entity_id, stored_version: stored_version, stored_events: stored_events}
     end

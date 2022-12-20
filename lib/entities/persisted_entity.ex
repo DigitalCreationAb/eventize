@@ -4,13 +4,31 @@ defmodule Reactive.Entities.PersistedEntity do
   use event sourcing to store its applied events.
   """
 
+  @type event_bus_interop :: %{
+          load_events:
+            (String.t(), :start | non_neg_integer(), :all | non_neg_integer() ->
+               EventStore.events_response()),
+          append_events:
+            (String.t(), list({term(), map()}), non_neg_integer() -> EventStore.events_response()),
+          delete_events: (String.t(), non_neg_integer() -> EventStore.events_response())
+        }
+
   defmacro __using__(_) do
     quote location: :keep do
       use Reactive.Entities.Entity
       alias Reactive.Entities.Entity
       alias Reactive.Persistence.EventStore
+      alias Reactive.Persistence.EventStore.EventData
 
       @before_compile Reactive.Entities.PersistedEntity
+
+      defguardp is_event_bus_interop(event_bus)
+                when is_map(event_bus) and is_map_key(event_bus, :load_events) and
+                       is_map_key(event_bus, :append_events) and
+                       is_map_key(event_bus, :delete_events) and
+                       is_function(event_bus.load_events, 3) and
+                       is_function(event_bus.append_events, 3) and
+                       is_function(event_bus.delete_events, 2)
 
       @doc """
       Initializes the PersistedEntity with the initial state.
@@ -18,6 +36,44 @@ defmodule Reactive.Entities.PersistedEntity do
       `Reactive.Persistence.EventStore` in the background.
       """
       def init(%{id: id, event_bus: event_bus}) do
+        event_bus =
+          case event_bus do
+            eb when is_event_bus_interop(eb) ->
+              eb
+
+            pid ->
+              %{
+                load_events: fn stream_name, start, max_count ->
+                  GenServer.call(
+                    pid,
+                    {:load_events,
+                     %{
+                       stream_name: stream_name,
+                       start: start,
+                       max_count: max_count
+                     }}
+                  )
+                end,
+                append_events: fn stream_name, events, expected_version ->
+                  GenServer.call(
+                    pid,
+                    {:append_events,
+                     %{
+                       stream_name: stream_name,
+                       events: events,
+                       expected_version: expected_version
+                     }}
+                  )
+                end,
+                delete_events: fn stream_name, version ->
+                  GenServer.call(
+                    pid,
+                    {:delete_events, %{stream_name: stream_name, version: version}}
+                  )
+                end
+              }
+          end
+
         entity_state =
           initialize_state(id) |> Map.put(:event_bus, event_bus) |> Map.put(:version, 0)
 
@@ -28,7 +84,7 @@ defmodule Reactive.Entities.PersistedEntity do
             :initialize_events,
             %{id: id, event_bus: event_bus, state: state, behavior: behavior} = entity_state
           ) do
-        {:ok, version, events} = event_bus.load_events(get_stream_name(id))
+        {:ok, version, events} = event_bus.load_events.(get_stream_name(id), :start, :all)
 
         {new_state, new_behavior} = run_event_handlers(events, state, behavior)
 
@@ -47,7 +103,7 @@ defmodule Reactive.Entities.PersistedEntity do
            )
            when is_list(events) do
         {:ok, version, stored_events} =
-          event_bus.append_events(
+          event_bus.append_events.(
             get_stream_name(id),
             events |> Enum.map(fn event -> {event, get_event_meta_data(event)} end),
             version
@@ -55,11 +111,12 @@ defmodule Reactive.Entities.PersistedEntity do
 
         {new_state, new_behavior} = run_event_handlers(stored_events, state, behavior)
 
-        {%{entity_state | state: new_state, behavior: new_behavior, version: version}, stored_events}
+        {%{entity_state | state: new_state, behavior: new_behavior, version: version},
+         stored_events}
       end
 
       defp run_event_applier(
-             %Reactive.Persistence.EventBus.EventData{
+             %EventData{
                payload: payload,
                meta_data: meta_data,
                sequence_number: sequence_number
@@ -70,7 +127,7 @@ defmodule Reactive.Entities.PersistedEntity do
       end
 
       defp cleanup(
-             %Reactive.Persistence.EventBus.EventData{
+             %EventData{
                payload: payload,
                meta_data: meta_data,
                sequence_number: sequence_number
@@ -81,7 +138,7 @@ defmodule Reactive.Entities.PersistedEntity do
       end
 
       defp run_cleanup({:delete_events, version}, current_return, %{id: id, event_bus: event_bus}) do
-        :ok = event_bus.delete(get_stream_name(id), version)
+        :ok = event_bus.delete_events.(get_stream_name(id), version)
 
         current_return
       end
