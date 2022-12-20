@@ -86,7 +86,7 @@ defmodule Reactive.Entities.Entity do
 
       defp handle_cleanup({entity_state, events}, default_return) do
         events
-        |> Enum.map(fn event -> cleanup(event, entity_state) end)
+        |> Enum.map(fn event -> cleanup(event, entity_state.state) end)
         |> Enum.map(fn cleanup_data ->
           case cleanup_data do
             list when is_list(list) ->
