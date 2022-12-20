@@ -113,6 +113,9 @@ defmodule Reactive.Entities.PersistedEntity do
         {:ok, entity_state, {:continue, :initialize_events}}
       end
 
+      @doc """
+      This continuation will run right after starting the process and is used to load the state of the entity from the event store.
+      """
       def handle_continue(
             :initialize_events,
             %{id: id, event_bus: event_bus, state: state, behavior: behavior} = entity_state

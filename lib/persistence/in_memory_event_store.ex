@@ -27,6 +27,10 @@ defmodule Reactive.Persistence.InMemoryEventStore do
   end
 
   defmodule StoredSnapshot do
+    @moduledoc """
+    Represents a stored snapshot.
+    """
+
     defstruct [:type, :payload, :meta_data, :version]
   end
 
@@ -59,13 +63,12 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     {:ok, %State{streams: %{}, snapshots: %{}}}
   end
 
-  def execute_call(
-        {:load_events,
-         %{
-           stream_name: stream_name,
-           start: start,
-           max_count: max_count
-         }},
+  def load_events(
+        %{
+          stream_name: stream_name,
+          start: start,
+          max_count: max_count
+        },
         _from,
         %State{streams: streams, serializer: serializer} = state
       ) do
@@ -101,9 +104,8 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     end
   end
 
-  def execute_call(
-        {:append_events,
-         %{stream_name: stream_name, events: events, expected_version: expected_version}},
+  def append_events(
+        %{stream_name: stream_name, events: events, expected_version: expected_version},
         _from,
         %State{streams: streams, serializer: serializer} = state
       ) do
@@ -147,8 +149,8 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     end
   end
 
-  def execute_call(
-        {:delete_events, %{stream_name: stream_name, version: version}},
+  def delete_events(
+        %{stream_name: stream_name, version: version},
         _from,
         %State{streams: streams} = state
       ) do
@@ -165,12 +167,11 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     end
   end
 
-  def execute_call(
-        {:load_snapshot,
-         %{
-           stream_name: stream_name,
-           max_version: max_version
-         }},
+  def load_snapshot(
+        %{
+          stream_name: stream_name,
+          max_version: max_version
+        },
         _from,
         %State{snapshots: snapshots_data, serializer: serializer} = state
       ) do
@@ -190,14 +191,13 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     end
   end
 
-  def execute_call(
-        {:append_snapshot,
-         %{
-           stream_name: stream_name,
-           snapshot: snapshot,
-           version: version,
-           expected_version: expected_version
-         }},
+  def append_snapshot(
+        %{
+          stream_name: stream_name,
+          snapshot: snapshot,
+          version: version,
+          expected_version: expected_version
+        },
         _from,
         %State{snapshots: snapshots, streams: streams, serializer: serializer} = state
       ) do
@@ -235,8 +235,8 @@ defmodule Reactive.Persistence.InMemoryEventStore do
     end
   end
 
-  def execute_call(
-        {:delete_snapshots, %{stream_name: stream_name, version: version}},
+  def delete_snapshots(
+        %{stream_name: stream_name, version: version},
         _from,
         %State{snapshots: snapshots} = state
       ) do

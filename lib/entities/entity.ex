@@ -2,11 +2,6 @@ defmodule Reactive.Entities.Entity do
   @moduledoc """
   Entity is a `GenServer` process used to provide access to an
   instance of an entity that can handle commands and apply events.
-
-  A entity is started whenever a command is sent to a instance.
-  By default, an entity process will run indefinitely once started.
-  Its lifespan may be controlled by implementing the `c:get_lifespan/2`
-  function.
   """
 
   @doc """
@@ -80,6 +75,9 @@ defmodule Reactive.Entities.Entity do
         handle_cleanup({new_state, events}, {:reply, response, new_state})
       end
 
+      @doc """
+      Stops the entity after the desired timeout.
+      """
       def handle_info(:timeout, state) do
         {:stop, :normal, state}
       end
