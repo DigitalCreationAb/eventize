@@ -68,24 +68,25 @@ defmodule PersistedEntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        {:start, %{title: "test"}}
-      )
+      {:ok, pid} =
+        TestPersistedEntityWithoutBehavior.start_link(%{
+          id: entity_id,
+          event_bus: Eventize.Persistence.EventStore
+        })
 
-      pid = TestEntitiesSupervisor.get_entity(TestPersistedEntityWithoutBehavior, entity_id)
+      GenServer.call(pid, {:execute, {:start, %{title: "test"}}})
 
       GenServer.stop(pid)
 
-      response =
-        TestCommandBus.call(
-          TestPersistedEntityWithoutBehavior,
-          entity_id,
-          :get_title
-        )
+      {:ok, pid} =
+        TestPersistedEntityWithoutBehavior.start_link(%{
+          id: entity_id,
+          event_bus: Eventize.Persistence.EventStore
+        })
 
-      {:ok, id: entity_id, response: response}
+      response = GenServer.call(pid, {:execute, :get_title})
+
+      {:ok, response: response}
     end
 
     test "then response should have correct title", state do
@@ -97,20 +98,17 @@ defmodule PersistedEntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        {:start, %{title: "test"}}
-      )
+      {:ok, pid} =
+        TestPersistedEntityWithoutBehavior.start_link(%{
+          id: entity_id,
+          event_bus: Eventize.Persistence.EventStore
+        })
 
-      response =
-        TestCommandBus.call(
-          TestPersistedEntityWithoutBehavior,
-          entity_id,
-          :get_title
-        )
+      GenServer.call(pid, {:execute, {:start, %{title: "test"}}})
 
-      {:ok, id: entity_id, response: response}
+      response = GenServer.call(pid, {:execute, :get_title})
+
+      {:ok, response: response}
     end
 
     test "then response should have correct title", state do
@@ -122,22 +120,20 @@ defmodule PersistedEntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        {:start, %{title: "test"}}
-      )
+      {:ok, pid} =
+        TestPersistedEntityWithoutBehavior.start_link(%{
+          id: entity_id,
+          event_bus: Eventize.Persistence.EventStore
+        })
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        :delete_previous
-      )
+      GenServer.call(pid, {:execute, {:start, %{title: "test"}}})
+
+      GenServer.call(pid, {:execute, :delete_previous})
 
       {:ok, stored_version, stored_events} =
         PersistedEntityTestEventBus.load_events("testpersistedentitywithoutbehavior-#{entity_id}")
 
-      {:ok, id: entity_id, stored_version: stored_version, stored_events: stored_events}
+      {:ok, stored_version: stored_version, stored_events: stored_events}
     end
 
     test "then one event should be in store for entity", state do
@@ -153,17 +149,15 @@ defmodule PersistedEntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        {:start, %{title: "test"}}
-      )
+      {:ok, pid} =
+        TestPersistedEntityWithoutBehavior.start_link(%{
+          id: entity_id,
+          event_bus: Eventize.Persistence.EventStore
+        })
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        :take_snapshot
-      )
+      GenServer.call(pid, {:execute, {:start, %{title: "test"}}})
+
+      GenServer.call(pid, {:execute, :take_snapshot})
 
       {:ok, stored_version, stored_events} =
         PersistedEntityTestEventBus.load_events("testpersistedentitywithoutbehavior-#{entity_id}")
@@ -174,7 +168,6 @@ defmodule PersistedEntityTest do
         )
 
       {:ok,
-       id: entity_id,
        stored_version: stored_version,
        stored_events: stored_events,
        stored_snapshot: snapshot_data}
@@ -205,29 +198,19 @@ defmodule PersistedEntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        {:start, %{title: "test1"}}
-      )
+      {:ok, pid} =
+        TestPersistedEntityWithoutBehavior.start_link(%{
+          id: entity_id,
+          event_bus: Eventize.Persistence.EventStore
+        })
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        :take_snapshot
-      )
+      GenServer.call(pid, {:execute, {:start, %{title: "test1"}}})
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        {:start, %{title: "test2"}}
-      )
+      GenServer.call(pid, {:execute, :take_snapshot})
 
-      TestCommandBus.call(
-        TestPersistedEntityWithoutBehavior,
-        entity_id,
-        :take_snapshot
-      )
+      GenServer.call(pid, {:execute, {:start, %{title: "test2"}}})
+
+      GenServer.call(pid, {:execute, :take_snapshot})
 
       {:ok, stored_version, stored_events} =
         PersistedEntityTestEventBus.load_events("testpersistedentitywithoutbehavior-#{entity_id}")

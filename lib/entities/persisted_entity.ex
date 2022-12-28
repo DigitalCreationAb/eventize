@@ -151,13 +151,17 @@ defmodule Eventize.Entities.PersistedEntity do
                behavior: behavior,
                event_bus: event_bus,
                version: version
-             } = entity_state
+             } = entity_state,
+             %{} = additional_meta_data
            )
            when is_list(events) do
         {:ok, version, stored_events} =
           event_bus.append_events.(
             get_stream_name(id),
-            events |> Enum.map(fn event -> {event, get_event_meta_data(event)} end),
+            events
+            |> Enum.map(fn event ->
+              {event, Map.merge(additional_meta_data, get_event_meta_data(event))}
+            end),
             version
           )
 

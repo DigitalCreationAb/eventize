@@ -6,14 +6,11 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      response =
-        TestCommandBus.call(
-          TestEntityWithBehavior,
-          entity_id,
-          {:start, %{title: "test"}}
-        )
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
 
-      {:ok, id: entity_id, response: response}
+      response = GenServer.call(pid, {:execute, {:start, %{title: "test"}}})
+
+      {:ok, pid: pid, response: response}
     end
 
     test "then response has correct title", state do
@@ -21,8 +18,7 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state =
-        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
+      entity_state = :sys.get_state(state.pid)
 
       assert entity_state.state.title == "test"
     end
@@ -32,18 +28,15 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.cast(
-        TestEntityWithBehavior,
-        entity_id,
-        {:start, %{title: "test"}}
-      )
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
 
-      {:ok, id: entity_id}
+      GenServer.cast(pid, {:execute, {:start, %{title: "test"}}})
+
+      {:ok, pid: pid}
     end
 
     test "then state has correct title", state do
-      entity_state =
-        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
+      entity_state = :sys.get_state(state.pid)
 
       assert entity_state.state.title == "test"
     end
@@ -53,31 +46,23 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.cast(
-        TestEntityWithBehavior,
-        entity_id,
-        {:start, %{title: "test1"}}
-      )
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
 
-      TestCommandBus.cast(
-        TestEntityWithBehavior,
-        entity_id,
-        {:start, %{title: "test2"}}
-      )
+      GenServer.cast(pid, {:execute, {:start, %{title: "test1"}}})
 
-      {:ok, id: entity_id}
+      GenServer.cast(pid, {:execute, {:start, %{title: "test2"}}})
+
+      {:ok, pid: pid}
     end
 
     test "then state has correct title", state do
-      entity_state =
-        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
+      entity_state = :sys.get_state(state.pid)
 
       assert entity_state.state.title == "test1"
     end
 
     test "then state has correct second title", state do
-      entity_state =
-        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
+      entity_state = :sys.get_state(state.pid)
 
       assert entity_state.state.secondTitle == "test2"
     end
@@ -87,14 +72,11 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      response =
-        TestCommandBus.call(
-          TestEntityWithoutBehavior,
-          entity_id,
-          {:start, %{title: "test"}}
-        )
+      {:ok, pid} = TestEntityWithoutBehavior.start_link(entity_id)
 
-      {:ok, id: entity_id, response: response}
+      response = GenServer.call(pid, {:execute, {:start, %{title: "test"}}})
+
+      {:ok, pid: pid, response: response}
     end
 
     test "then response has correct title", state do
@@ -102,8 +84,7 @@ defmodule EntityTest do
     end
 
     test "then state has correct title", state do
-      entity_state =
-        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
+      entity_state = :sys.get_state(state.pid)
 
       assert entity_state.state.title == "test"
     end
@@ -113,18 +94,15 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      TestCommandBus.cast(
-        TestEntityWithoutBehavior,
-        entity_id,
-        {:start, %{title: "test"}}
-      )
+      {:ok, pid} = TestEntityWithoutBehavior.start_link(entity_id)
 
-      {:ok, id: entity_id}
+      GenServer.cast(pid, {:execute, {:start, %{title: "test"}}})
+
+      {:ok, pid: pid}
     end
 
     test "then state has correct title", state do
-      entity_state =
-        :sys.get_state(TestEntitiesSupervisor.get_entity(TestEntityWithBehavior, state.id))
+      entity_state = :sys.get_state(state.pid)
 
       assert entity_state.state.title == "test"
     end
@@ -134,21 +112,160 @@ defmodule EntityTest do
     setup do
       entity_id = UUID.uuid4()
 
-      pid = TestEntitiesSupervisor.get_entity(TestEntityWithoutBehavior, entity_id)
+      {:ok, pid} = TestEntityWithoutBehavior.start_link(entity_id)
 
       ref = Process.monitor(pid)
 
-      %{id: entity_id, ref: ref}
+      %{pid: pid, ref: ref}
     end
 
-    test "then entity should be stopped", %{ref: ref, id: id} do
-      TestCommandBus.cast(
-        TestEntityWithoutBehavior,
-        id,
-        :stop
-      )
+    test "then entity should be stopped", %{ref: ref, pid: pid} do
+      GenServer.cast(pid, {:execute, :stop})
 
       assert_receive {:DOWN, ^ref, :process, _pid, :normal}
+    end
+  end
+
+  describe "When calling entity and supplying message_id and correlation_id" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
+
+      response =
+        GenServer.call(
+          pid,
+          {:execute, {:start, %{title: "test"}},
+           %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}}
+        )
+
+      {:ok, pid: pid, response: response}
+    end
+
+    test "then response has correct title", state do
+      assert state.response.title == "test"
+    end
+
+    test "then state has correct title", state do
+      entity_state = :sys.get_state(state.pid)
+
+      assert entity_state.state.title == "test"
+    end
+  end
+
+  describe "When calling entity and supplying message_id" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
+
+      response =
+        GenServer.call(
+          pid,
+          {:execute, {:start, %{title: "test"}}, %{message_id: UUID.uuid4()}}
+        )
+
+      {:ok, pid: pid, response: response}
+    end
+
+    test "then response has correct title", state do
+      assert state.response.title == "test"
+    end
+
+    test "then state has correct title", state do
+      entity_state = :sys.get_state(state.pid)
+
+      assert entity_state.state.title == "test"
+    end
+  end
+
+  describe "When calling entity and supplying correlation_id" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
+
+      response =
+        GenServer.call(
+          pid,
+          {:execute, {:start, %{title: "test"}}, %{correlation_id: UUID.uuid4()}}
+        )
+
+      {:ok, pid: pid, response: response}
+    end
+
+    test "then response has correct title", state do
+      assert state.response.title == "test"
+    end
+
+    test "then state has correct title", state do
+      entity_state = :sys.get_state(state.pid)
+
+      assert entity_state.state.title == "test"
+    end
+  end
+
+  describe "When casting to entity and supplying message_id and correlation_id" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
+
+      GenServer.cast(
+        pid,
+        {:execute, {:start, %{title: "test"}},
+         %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}}
+      )
+
+      {:ok, pid: pid}
+    end
+
+    test "then state has correct title", state do
+      entity_state = :sys.get_state(state.pid)
+
+      assert entity_state.state.title == "test"
+    end
+  end
+
+  describe "When casting to entity and supplying message_id" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
+
+      GenServer.cast(
+        pid,
+        {:execute, {:start, %{title: "test"}}, %{message_id: UUID.uuid4()}}
+      )
+
+      {:ok, pid: pid}
+    end
+
+    test "then state has correct title", state do
+      entity_state = :sys.get_state(state.pid)
+
+      assert entity_state.state.title == "test"
+    end
+  end
+
+  describe "When casting to entity and supplying correlation_id" do
+    setup do
+      entity_id = UUID.uuid4()
+
+      {:ok, pid} = TestEntityWithBehavior.start_link(entity_id)
+
+      GenServer.cast(
+        pid,
+        {:execute, {:start, %{title: "test"}}, %{correlation_id: UUID.uuid4()}}
+      )
+
+      {:ok, pid: pid}
+    end
+
+    test "then state has correct title", state do
+      entity_state = :sys.get_state(state.pid)
+
+      assert entity_state.state.title == "test"
     end
   end
 end

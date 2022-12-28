@@ -30,13 +30,21 @@ defmodule Eventize.Entities.Entity do
       Handle any command sent to the entity.
       """
       def handle_cast(
-            {:execute, command},
+            {:execute, command, %{message_id: message_id, correlation_id: correlation_id}},
             %{id: id, state: state, behavior: behavior} = entity_state
           ) do
         {new_state, events} =
-          case behavior.execute_cast(command, %{id: id, state: state}) do
+          case behavior.execute_cast(command, %{
+                 id: id,
+                 state: state,
+                 causation_id: message_id,
+                 correlation_id: correlation_id
+               }) do
             events when is_list(events) ->
-              apply_events(events, entity_state)
+              apply_events(events, entity_state, %{
+                causation_id: message_id,
+                correlation_id: correlation_id
+              })
 
             _ ->
               {entity_state, []}
@@ -45,23 +53,57 @@ defmodule Eventize.Entities.Entity do
         handle_cleanup({new_state, events}, {:noreply, new_state})
       end
 
+      def handle_cast({:execute, command, %{message_id: message_id}}, entity_state),
+        do:
+          handle_cast(
+            {:execute, command, %{message_id: message_id, correlation_id: UUID.uuid4()}},
+            entity_state
+          )
+
+      def handle_cast({:execute, command, %{correlation_id: correlation_id}}, entity_state),
+        do:
+          handle_cast(
+            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: correlation_id}},
+            entity_state
+          )
+
+      def handle_cast({:execute, command}, entity_state),
+        do:
+          handle_cast(
+            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}},
+            entity_state
+          )
+
       @doc """
       Handle any command sent to the entity where the sender wants a response back.
       """
       def handle_call(
-            {:execute, command},
+            {:execute, command, %{message_id: message_id, correlation_id: correlation_id}},
             from,
             %{id: id, state: state, behavior: behavior} = entity_state
           ) do
         {response, new_state, events} =
-          case behavior.execute_call(command, from, %{id: id, state: state}) do
+          case behavior.execute_call(command, from, %{
+                 id: id,
+                 state: state,
+                 causation_id: message_id,
+                 correlation_id: correlation_id
+               }) do
             {events, response} when is_list(events) ->
-              {state, events} = apply_events(events, entity_state)
+              {state, events} =
+                apply_events(events, entity_state, %{
+                  causation_id: message_id,
+                  correlation_id: correlation_id
+                })
 
               {response, state, events}
 
             events when is_list(events) ->
-              {state, events} = apply_events(events, entity_state)
+              {state, events} =
+                apply_events(events, entity_state, %{
+                  causation_id: message_id,
+                  correlation_id: correlation_id
+                })
 
               {:ok, state, events}
 
@@ -74,6 +116,30 @@ defmodule Eventize.Entities.Entity do
 
         handle_cleanup({new_state, events}, {:reply, response, new_state})
       end
+
+      def handle_call({:execute, command, %{message_id: message_id}}, from, entity_state),
+        do:
+          handle_call(
+            {:execute, command, %{message_id: message_id, correlation_id: UUID.uuid4()}},
+            from,
+            entity_state
+          )
+
+      def handle_call({:execute, command, %{correlation_id: correlation_id}}, from, entity_state),
+        do:
+          handle_call(
+            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: correlation_id}},
+            from,
+            entity_state
+          )
+
+      def handle_call({:execute, command}, from, entity_state),
+        do:
+          handle_call(
+            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}},
+            from,
+            entity_state
+          )
 
       @doc """
       Stops the entity after the desired timeout.
@@ -198,14 +264,18 @@ defmodule Eventize.Entities.Entity do
         end
       end
 
-      defp apply_events(events, %{state: state, behavior: behavior} = entity_state)
+      defp apply_events(
+             events,
+             %{state: state, behavior: behavior} = entity_state,
+             %{} = _additional_meta_data
+           )
            when is_list(events) do
         {new_state, new_behavior} = run_event_handlers(events, state, behavior)
 
         {%{entity_state | state: new_state, behavior: new_behavior}, events}
       end
 
-      defoverridable apply_events: 2
+      defoverridable apply_events: 3
 
       defp run_event_handlers(events, state, current_behavior) when is_list(events) do
         Enum.reduce(events, {state, current_behavior}, fn event, {state, behavior} ->

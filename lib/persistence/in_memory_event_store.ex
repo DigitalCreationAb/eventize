@@ -46,12 +46,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
   end
 
   @spec init(%{serializer: :atom} | term()) ::
-          {:ok,
-           %Eventize.Persistence.InMemoryEventStore.State{
-             serializer: :atom,
-             streams: map(),
-             snapshots: map()
-           }}
+          {:ok, Eventize.Persistence.InMemoryEventStore.State.t()}
   @doc """
   Initializes a InMemoryEventStore with a optional serializer.
   """
@@ -121,31 +116,34 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _ -> 0
       end
 
-    with :ok <- check_expected_version(latest_sequence_number, expected_version) do
-      serialized_events =
-        events
-        |> Enum.with_index(latest_sequence_number + 1)
-        |> Enum.map(fn {event, seq} -> serialize(event, seq, serializer, :event) end)
+    case check_expected_version(latest_sequence_number, expected_version) do
+      :ok ->
+        serialized_events =
+          events
+          |> Enum.with_index(latest_sequence_number + 1)
+          |> Enum.map(fn {event, seq} -> serialize(event, seq, serializer, :event) end)
 
-      new_events = prepend(current_events, serialized_events)
+        new_events = prepend(current_events, serialized_events)
 
-      new_state = %State{
-        state
-        | streams: Map.put(streams, stream_name, new_events)
-      }
+        new_state = %State{
+          state
+          | streams: Map.put(streams, stream_name, new_events)
+        }
 
-      version =
-        case new_events do
-          [] -> latest_sequence_number
-          [head | _] -> head.sequence_number
-          _ -> latest_sequence_number
-        end
+        version =
+          case new_events do
+            [] -> latest_sequence_number
+            [head | _] -> head.sequence_number
+            _ -> latest_sequence_number
+          end
 
-      {:reply,
-       {:ok, version,
-        serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end)}, new_state}
-    else
-      err -> {:reply, err, state}
+        {:reply,
+         {:ok, version,
+          serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end)},
+         new_state}
+
+      err ->
+        {:reply, err, state}
     end
   end
 
@@ -219,19 +217,21 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _ -> 0
       end
 
-    with :ok <- check_expected_version(latest_sequence_number, expected_version) do
-      serialized_snapshot = serialize(snapshot, version, serializer, :snapshot)
+    case check_expected_version(latest_sequence_number, expected_version) do
+      :ok ->
+        serialized_snapshot = serialize(snapshot, version, serializer, :snapshot)
 
-      new_snapshots = [serialized_snapshot | current_snapshots]
+        new_snapshots = [serialized_snapshot | current_snapshots]
 
-      new_state = %State{
-        state
-        | snapshots: Map.put(snapshots, stream_name, new_snapshots)
-      }
+        new_state = %State{
+          state
+          | snapshots: Map.put(snapshots, stream_name, new_snapshots)
+        }
 
-      {:reply, {:ok, deserialize(serialized_snapshot, serializer)}, new_state}
-    else
-      err -> {:reply, err, state}
+        {:reply, {:ok, deserialize(serialized_snapshot, serializer)}, new_state}
+
+      err ->
+        {:reply, err, state}
     end
   end
 

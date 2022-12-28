@@ -3,17 +3,10 @@ defmodule TestEntityWithoutBehavior do
 
   use Eventize.Entities.Entity
 
-  def child_spec(id) do
-    %{
-      id: id,
-      start: {__MODULE__, :start_link, [id]}
-    }
-  end
-
   def start_link(id) do
     GenServer.start_link(
       __MODULE__,
-      id,
+      %{id: id},
       name: {:global, id}
     )
   end
