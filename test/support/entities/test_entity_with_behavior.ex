@@ -1,7 +1,7 @@
 defmodule TestEntityWithBehavior do
   @moduledoc false
 
-  use Reactive.Entities.Entity
+  use Eventize.Entities.Entity
 
   defmodule NotStarted do
     @moduledoc false

@@ -1,12 +1,12 @@
-defmodule Reactive.Persistence.InMemoryEventStore do
+defmodule Eventize.Persistence.InMemoryEventStore do
   @moduledoc """
-  InMemoryEventStore is a `Reactive.Persistence.EventStore`
-  process used to store events for `Reactive.Entities.Entity`
+  InMemoryEventStore is a `Eventize.Persistence.EventStore`
+  process used to store events for `Eventize.Entities.Entity`
   instances in memory.
   """
-  alias Reactive.Persistence.EventStore.SnapshotData
+  alias Eventize.Persistence.EventStore.SnapshotData
 
-  use Reactive.Persistence.EventStore
+  use Eventize.Persistence.EventStore
 
   defmodule State do
     @moduledoc """
@@ -15,7 +15,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
 
     defstruct streams: %{},
               snapshots: %{},
-              serializer: Reactive.Serialization.JasonSerializer
+              serializer: Eventize.Serialization.JasonSerializer
   end
 
   defmodule StoredEvent do
@@ -47,7 +47,7 @@ defmodule Reactive.Persistence.InMemoryEventStore do
 
   @spec init(%{serializer: :atom} | term()) ::
           {:ok,
-           %Reactive.Persistence.InMemoryEventStore.State{
+           %Eventize.Persistence.InMemoryEventStore.State{
              serializer: :atom,
              streams: map(),
              snapshots: map()

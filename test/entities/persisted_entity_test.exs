@@ -1,13 +1,13 @@
 defmodule PersistedEntityTest do
   use ExUnit.Case
-  doctest Reactive.Entities.PersistedEntity
+  doctest Eventize.Entities.PersistedEntity
 
   defmodule PersistedEntityTestEventBus do
     @moduledoc false
 
     def load_events(stream_name, start \\ :start, max_count \\ :all) do
       GenServer.call(
-        Reactive.Persistence.EventStore,
+        Eventize.Persistence.EventStore,
         {:load_events,
          %{
            stream_name: stream_name,
@@ -19,7 +19,7 @@ defmodule PersistedEntityTest do
 
     def append_events(stream_name, events, expected_version \\ :any) do
       GenServer.call(
-        Reactive.Persistence.EventStore,
+        Eventize.Persistence.EventStore,
         {:append_events,
          %{
            stream_name: stream_name,
@@ -31,21 +31,21 @@ defmodule PersistedEntityTest do
 
     def delete_events(stream_name, version) do
       GenServer.call(
-        Reactive.Persistence.EventStore,
+        Eventize.Persistence.EventStore,
         {:delete_events, %{stream_name: stream_name, version: version}}
       )
     end
 
     def load_snapshot(stream_name, max_version \\ :max) do
       GenServer.call(
-        Reactive.Persistence.EventStore,
+        Eventize.Persistence.EventStore,
         {:load_snapshot, %{stream_name: stream_name, max_version: max_version}}
       )
     end
 
     def append_snapshot(stream_name, snapshot, version, expected_version \\ :any) do
       GenServer.call(
-        Reactive.Persistence.EventStore,
+        Eventize.Persistence.EventStore,
         {:append_snapshot,
          %{
            stream_name: stream_name,
@@ -58,7 +58,7 @@ defmodule PersistedEntityTest do
 
     def delete_snapshots(stream_name, version) do
       GenServer.call(
-        Reactive.Persistence.EventStore,
+        Eventize.Persistence.EventStore,
         {:delete_snapshots, %{stream_name: stream_name, version: version}}
       )
     end
@@ -189,13 +189,13 @@ defmodule PersistedEntityTest do
     end
 
     test "then snapshot should have correct title", state do
-      assert %Reactive.Persistence.EventStore.SnapshotData{
+      assert %Eventize.Persistence.EventStore.SnapshotData{
                payload: {:entity_snapshot, %{title: "test"}}
              } = state.stored_snapshot
     end
 
     test "then snapshot version should be 2", state do
-      assert %Reactive.Persistence.EventStore.SnapshotData{
+      assert %Eventize.Persistence.EventStore.SnapshotData{
                version: 2
              } = state.stored_snapshot
     end
@@ -253,20 +253,20 @@ defmodule PersistedEntityTest do
     end
 
     test "then snapshot should have correct title", state do
-      assert %Reactive.Persistence.EventStore.SnapshotData{
+      assert %Eventize.Persistence.EventStore.SnapshotData{
                payload: {:entity_snapshot, %{title: "test2"}}
              } = state.stored_snapshot
     end
 
     test "then snapshot version should be 4", state do
-      assert %Reactive.Persistence.EventStore.SnapshotData{
+      assert %Eventize.Persistence.EventStore.SnapshotData{
                version: 4
              } = state.stored_snapshot
     end
 
     test "then one snapshot should still be in event store", state do
-      %Reactive.Persistence.InMemoryEventStore.State{snapshots: snapshots} =
-        :sys.get_state(Reactive.Persistence.EventStore)
+      %Eventize.Persistence.InMemoryEventStore.State{snapshots: snapshots} =
+        :sys.get_state(Eventize.Persistence.EventStore)
 
       assert length(Map.get(snapshots, "testpersistedentitywithoutbehavior-#{state.id}")) == 1
     end

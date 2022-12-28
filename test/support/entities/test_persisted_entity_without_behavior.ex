@@ -1,7 +1,7 @@
 defmodule TestPersistedEntityWithoutBehavior do
   @moduledoc false
 
-  use Reactive.Entities.PersistedEntity
+  use Eventize.Entities.PersistedEntity
 
   def child_spec(%{id: id} = data) do
     %{

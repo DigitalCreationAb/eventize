@@ -1,7 +1,7 @@
-defmodule Reactive.Persistence.EventStore do
+defmodule Eventize.Persistence.EventStore do
   @moduledoc """
   EventStore is a `GenServer` process used to store
-  events for `Reactive.Entities.Entity` instances.
+  events for `Eventize.Entities.Entity` instances.
   """
 
   defmodule EventData do
@@ -135,8 +135,8 @@ defmodule Reactive.Persistence.EventStore do
     quote do
       use GenServer
 
-      @behaviour Reactive.Persistence.EventStore
-      alias Reactive.Persistence.EventStore.EventData
+      @behaviour Eventize.Persistence.EventStore
+      alias Eventize.Persistence.EventStore.EventData
 
       def handle_call({:load_events, query}, from, state),
         do: load_events(query, from, state)

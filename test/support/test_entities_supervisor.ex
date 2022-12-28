@@ -18,7 +18,7 @@ defmodule TestEntitiesSupervisor do
   def get_entity(type, id) do
     case DynamicSupervisor.start_child(
            __MODULE__,
-           {type, %{id: id, event_bus: Reactive.Persistence.EventStore}}
+           {type, %{id: id, event_bus: Eventize.Persistence.EventStore}}
          ) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid

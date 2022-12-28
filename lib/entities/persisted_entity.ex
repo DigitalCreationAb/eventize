@@ -1,6 +1,6 @@
-defmodule Reactive.Entities.PersistedEntity do
+defmodule Eventize.Entities.PersistedEntity do
   @moduledoc """
-  PersistedEntity is a `Reactive.Entities.Entity` that will
+  PersistedEntity is a `Eventize.Entities.Entity` that will
   use event sourcing to store its applied events.
   """
 
@@ -20,13 +20,13 @@ defmodule Reactive.Entities.PersistedEntity do
 
   defmacro __using__(_) do
     quote location: :keep do
-      use Reactive.Entities.Entity
-      alias Reactive.Entities.Entity
-      alias Reactive.Persistence.EventStore
-      alias Reactive.Persistence.EventStore.EventData
-      alias Reactive.Persistence.EventStore.SnapshotData
+      use Eventize.Entities.Entity
+      alias Eventize.Entities.Entity
+      alias Eventize.Persistence.EventStore
+      alias Eventize.Persistence.EventStore.EventData
+      alias Eventize.Persistence.EventStore.SnapshotData
 
-      @before_compile Reactive.Entities.PersistedEntity
+      @before_compile Eventize.Entities.PersistedEntity
 
       defguardp is_event_bus_interop(event_bus)
                 when is_map(event_bus) and is_map_key(event_bus, :load_events) and
@@ -42,7 +42,7 @@ defmodule Reactive.Entities.PersistedEntity do
       @doc """
       Initializes the PersistedEntity with the initial state.
       Then it uses `:continue` to read the events from the
-      `Reactive.Persistence.EventStore` in the background.
+      `Eventize.Persistence.EventStore` in the background.
       """
       def init(%{id: id, event_bus: event_bus}) do
         event_bus =

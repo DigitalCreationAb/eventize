@@ -1,10 +1,10 @@
-defmodule Reactive.EventStoreTests do
+defmodule Eventize.EventStoreTests do
   defmacro __using__(event_store_module) do
     quote do
       use ExUnit.Case
 
-      alias Reactive.Persistence.EventStore.EventData
-      alias Reactive.Persistence.EventStore.SnapshotData
+      alias Eventize.Persistence.EventStore.EventData
+      alias Eventize.Persistence.EventStore.SnapshotData
 
       doctest unquote(__MODULE__)
 

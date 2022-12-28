@@ -1,4 +1,4 @@
-defmodule Reactive.Entities.Entity do
+defmodule Eventize.Entities.Entity do
   @moduledoc """
   Entity is a `GenServer` process used to provide access to an
   instance of an entity that can handle commands and apply events.
@@ -12,10 +12,10 @@ defmodule Reactive.Entities.Entity do
   defmacro __using__(_) do
     quote do
       use GenServer
-      alias Reactive.Entities.Entity
+      alias Eventize.Entities.Entity
 
-      @before_compile Reactive.Entities.Entity
-      @behaviour Reactive.Entities.Entity
+      @before_compile Eventize.Entities.Entity
+      @behaviour Eventize.Entities.Entity
 
       @doc """
       Initializes the entity with the initial state.

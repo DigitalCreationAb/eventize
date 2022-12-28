@@ -1,7 +1,7 @@
 defmodule TestEntityWithoutBehavior do
   @moduledoc false
 
-  use Reactive.Entities.Entity
+  use Eventize.Entities.Entity
 
   def child_spec(id) do
     %{

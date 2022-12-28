@@ -1,4 +1,4 @@
-defmodule Reactive.Serialization.Serializer do
+defmodule Eventize.Serialization.Serializer do
   @moduledoc """
   Behaviour that specifies how events and snapshots can be serialized and deserialized.
   """

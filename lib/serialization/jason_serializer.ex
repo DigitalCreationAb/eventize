@@ -1,9 +1,9 @@
-defmodule Reactive.Serialization.JasonSerializer do
+defmodule Eventize.Serialization.JasonSerializer do
   @moduledoc """
   A serializer that uses the Jason library.
   """
 
-  @behaviour Reactive.Serialization.Serializer
+  @behaviour Eventize.Serialization.Serializer
 
   @spec serialize(map) :: {:error, any} | {:ok, String.t()}
   def serialize(input) do

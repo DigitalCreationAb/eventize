@@ -1,9 +1,9 @@
-defmodule Reactive.MixProject do
+defmodule Eventize.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :reactive,
+      app: :eventize,
       version: "0.1.1",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
@@ -25,7 +25,7 @@ defmodule Reactive.MixProject do
       files: ["lib", "mix.exs", "README*", "LICENSE*"],
       maintainers: ["Mattias Jakobsson"],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/DigitalCreationAb/reactive"}
+      links: %{"GitHub" => "https://github.com/DigitalCreationAb/eventize"}
     ]
   end
 
