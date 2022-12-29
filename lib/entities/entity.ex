@@ -1,7 +1,6 @@
 defmodule Eventize.Entities.Entity do
   @moduledoc """
-  Entity is a `GenServer` process used to provide access to an
-  instance of an entity that can handle commands and apply events.
+  Entity is a opinionated `GenServer`.
   """
 
   @doc """

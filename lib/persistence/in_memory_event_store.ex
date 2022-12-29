@@ -67,36 +67,36 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _from,
         %State{streams: streams, serializer: serializer} = state
       ) do
-    case Map.get(streams, stream_name) do
-      nil ->
-        {:reply, {:ok, 0, []}, state}
+    events =
+      case Map.get(streams, stream_name) do
+        nil -> []
+        e -> e
+      end
 
-      events ->
-        latest_sequence_number =
-          case events do
-            [%StoredEvent{sequence_number: sequence_number} | _tail] -> sequence_number
-            _ -> 0
-          end
+    latest_sequence_number =
+      case events do
+        [%StoredEvent{sequence_number: sequence_number} | _tail] -> sequence_number
+        _ -> 0
+      end
 
-        deserialized_events =
-          events
-          |> Enum.map(fn event -> deserialize(event, serializer) end)
-          |> Enum.reverse()
-          |> Enum.filter(fn event ->
-            case start do
-              :start -> true
-              position -> event.sequence_number >= position
-            end
-          end)
+    deserialized_events =
+      events
+      |> Enum.map(fn event -> deserialize(event, serializer) end)
+      |> Enum.reverse()
+      |> Enum.filter(fn event ->
+        case start do
+          :start -> true
+          position -> event.sequence_number >= position
+        end
+      end)
 
-        deserialized_events =
-          case max_count do
-            :all -> deserialized_events
-            count -> deserialized_events |> Enum.slice(0, count)
-          end
+    deserialized_events =
+      case max_count do
+        :all -> deserialized_events
+        count -> deserialized_events |> Enum.slice(0, count)
+      end
 
-        {:reply, {:ok, latest_sequence_number, deserialized_events}, state}
-    end
+    {:reply, {:ok, latest_sequence_number, deserialized_events}, state}
   end
 
   def append_events(
@@ -173,19 +173,19 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _from,
         %State{snapshots: snapshots_data, serializer: serializer} = state
       ) do
-    case Map.get(snapshots_data, stream_name) do
-      nil ->
-        {:reply, {:ok, nil}, state}
+    snapshots =
+      case Map.get(snapshots_data, stream_name) do
+        nil -> []
+        ss -> ss
+      end
+      |> Enum.filter(fn snapshot ->
+        snapshot.version <= max_version
+      end)
+      |> Enum.take(1)
 
-      snapshots ->
-        case snapshots
-             |> Enum.filter(fn snapshot ->
-               snapshot.version <= max_version
-             end)
-             |> Enum.take(1) do
-          [snapshot | _] -> {:reply, {:ok, deserialize(snapshot, serializer)}, state}
-          _ -> {:reply, {:ok, nil}, state}
-        end
+    case snapshots do
+      [snapshot | _] -> {:reply, {:ok, deserialize(snapshot, serializer)}, state}
+      _ -> {:reply, {:ok, nil}, state}
     end
   end
 

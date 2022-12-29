@@ -32,6 +32,9 @@ defmodule Eventize.Entities.PersistedEntity do
                 when is_map(event_bus) and is_map_key(event_bus, :load_events) and
                        is_map_key(event_bus, :append_events) and
                        is_map_key(event_bus, :delete_events) and
+                       is_map_key(event_bus, :load_snapshot) and
+                       is_map_key(event_bus, :append_snapshot) and
+                       is_map_key(event_bus, :delete_snapshots) and
                        is_function(event_bus.load_events, 3) and
                        is_function(event_bus.append_events, 3) and
                        is_function(event_bus.delete_events, 2) and
