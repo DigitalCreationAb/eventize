@@ -13,6 +13,8 @@ defmodule Eventize.Persistence.InMemoryEventStore do
     State is a struct that keeps all stored events in their streams.
     """
 
+    @type t :: %__MODULE__{streams: map(), snapshots: map(), serializer: :atom}
+
     defstruct streams: %{},
               snapshots: %{},
               serializer: Eventize.Serialization.JasonSerializer

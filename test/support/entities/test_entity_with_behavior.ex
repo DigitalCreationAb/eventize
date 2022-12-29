@@ -1,7 +1,7 @@
 defmodule TestEntityWithBehavior do
   @moduledoc false
 
-  use Eventize.Entities.Entity
+  use Eventize.Entities.PersistedEntity
 
   defmodule NotStarted do
     @moduledoc false

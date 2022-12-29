@@ -1,6 +1,6 @@
 defmodule EntityTest do
   use ExUnit.Case
-  doctest Eventize.Entities.Entity
+  doctest Eventize.Entities.PersistedEntity
 
   describe "When calling entity with behavior" do
     setup do

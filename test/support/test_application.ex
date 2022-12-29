@@ -5,7 +5,6 @@ defmodule TestApplication do
 
   def start(_type, _args) do
     children = [
-      TestEntitiesSupervisor,
       {Eventize.Persistence.InMemoryEventStore, name: Eventize.Persistence.EventStore}
     ]
 

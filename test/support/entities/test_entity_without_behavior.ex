@@ -1,7 +1,7 @@
 defmodule TestEntityWithoutBehavior do
   @moduledoc false
 
-  use Eventize.Entities.Entity
+  use Eventize.Entities.PersistedEntity
 
   def start_link(id) do
     GenServer.start_link(
