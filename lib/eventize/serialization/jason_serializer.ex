@@ -12,7 +12,7 @@ defmodule Eventize.Serialization.JasonSerializer do
 
   @spec deserialize(
           String.t(),
-          :atom | nil
+          atom | nil
         ) :: {:error, any} | {:ok, map}
   def deserialize(input, type \\ nil) do
     with {:ok, result} <- Jason.decode(input, keys: :atoms) do

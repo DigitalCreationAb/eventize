@@ -13,7 +13,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
     State is a struct that keeps all stored events in their streams.
     """
 
-    @type t :: %__MODULE__{streams: map(), snapshots: map(), serializer: :atom}
+    @type t :: %__MODULE__{streams: map(), snapshots: map(), serializer: atom}
 
     defstruct streams: %{},
               snapshots: %{},
@@ -47,7 +47,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
     end
   end
 
-  @spec init(%{serializer: :atom} | term()) ::
+  @spec init(%{serializer: atom} | term()) ::
           {:ok, Eventize.Persistence.InMemoryEventStore.State.t()}
   @doc """
   Initializes a InMemoryEventStore with a optional serializer.
@@ -134,7 +134,6 @@ defmodule Eventize.Persistence.InMemoryEventStore do
 
         version =
           case new_events do
-            [] -> latest_sequence_number
             [head | _] -> head.sequence_number
             _ -> latest_sequence_number
           end
@@ -154,25 +153,17 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _from,
         %State{streams: streams} = state
       ) do
-    case Map.get(streams, stream_name) do
-      nil ->
-        {:reply, :ok, state}
+    new_events =
+      case Map.get(streams, stream_name) do
+        nil ->
+          []
 
-      events ->
-        new_events =
+        events ->
           events
-          |> Enum.filter(fn event ->
-            case version do
-              :all ->
-                true
+          |> Enum.filter(fn event -> should_remove(event, version) end)
+      end
 
-              version ->
-                event.sequence_number > version
-            end
-          end)
-
-        {:reply, :ok, %State{state | streams: Map.put(streams, stream_name, new_events)}}
-    end
+    {:reply, :ok, %State{state | streams: Map.put(streams, stream_name, new_events)}}
   end
 
   def load_snapshot(
@@ -250,24 +241,36 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _from,
         %State{snapshots: snapshots} = state
       ) do
-    case Map.get(snapshots, stream_name) do
-      nil ->
-        {:reply, :ok, state}
+    new_snapshots =
+      case Map.get(snapshots, stream_name) do
+        nil ->
+          []
 
-      items ->
-        new_snapshots =
+        items ->
           items
-          |> Enum.filter(fn snapshot ->
-            case version do
-              :all ->
-                true
+          |> Enum.filter(fn snapshot -> should_remove(snapshot, version) end)
+      end
 
-              version ->
-                snapshot.version > version
-            end
-          end)
+    {:reply, :ok, %State{state | snapshots: Map.put(snapshots, stream_name, new_snapshots)}}
+  end
 
-        {:reply, :ok, %State{state | snapshots: Map.put(snapshots, stream_name, new_snapshots)}}
+  defp should_remove(%StoredSnapshot{version: snapshot_version}, new_version) do
+    case new_version do
+      :all ->
+        true
+
+      version ->
+        snapshot_version > version
+    end
+  end
+
+  defp should_remove(%StoredEvent{sequence_number: event_sequence_number}, new_version) do
+    case new_version do
+      :all ->
+        true
+
+      version ->
+        event_sequence_number > version
     end
   end
 

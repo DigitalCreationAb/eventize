@@ -7,10 +7,11 @@ defmodule EventSourcedProcess.TimeoutCleanupTest do
 
       pid = get_process(id)
 
-      response = GenServer.call(
-        pid,
-        {:timeout, 1}
-      )
+      response =
+        GenServer.call(
+          pid,
+          {:timeout, 1}
+        )
 
       {:ok, pid: pid, id: id, response: response}
     end

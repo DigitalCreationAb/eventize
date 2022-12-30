@@ -141,7 +141,7 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then no events should be stored", state do
-      assert length(get_events(state.id)) == 0
+      assert get_events(state.id) == []
     end
 
     test "then process version should be 0", state do
@@ -167,7 +167,7 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then no events should be stored", state do
-      assert length(get_events(state.id)) == 0
+      assert get_events(state.id) == []
     end
 
     test "then process version should be 0", state do
@@ -195,7 +195,7 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then no event should be stored", state do
-      assert length(get_events(state.id, 2)) == 0
+      assert get_events(state.id, 2) == []
     end
 
     test "then process version should be 1", state do
@@ -221,7 +221,7 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then no event should be stored", state do
-      assert length(get_events(state.id, 2)) == 0
+      assert get_events(state.id, 2) == []
     end
 
     test "then process version should be 1", state do

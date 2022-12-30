@@ -7,10 +7,11 @@ defmodule EventSourcedProcess.HibernateCleanupTest do
 
       pid = get_process(id)
 
-      response = GenServer.call(
-        pid,
-        :hibernate
-      )
+      response =
+        GenServer.call(
+          pid,
+          :hibernate
+        )
 
       {:ok, pid: pid, id: id, response: response}
     end
@@ -36,7 +37,8 @@ defmodule EventSourcedProcess.HibernateCleanupTest do
     end
 
     test "then process should be hibernating", state do
-      assert {:current_function, {:erlang, :hibernate, _}} = Process.info(state.pid, :current_function)
+      assert {:current_function, {:erlang, :hibernate, _}} =
+               Process.info(state.pid, :current_function)
     end
   end
 end

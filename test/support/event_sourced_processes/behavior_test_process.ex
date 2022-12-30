@@ -4,6 +4,8 @@ defmodule Eventize.BehaviorTestProcess do
   use Eventize.EventSourcedProcess
 
   defmodule InitialBehavior do
+    @moduledoc false
+
     def execute_call(:enter_secondary, _from, _context) do
       {[{:seconday_behavior_entered, %{}}], :ok}
     end
@@ -26,6 +28,8 @@ defmodule Eventize.BehaviorTestProcess do
   end
 
   defmodule SecondaryBehavior do
+    @moduledoc false
+
     def execute_call(:enter_initial, _from, _context) do
       {[{:initial_behavior_entered, %{}}], :ok}
     end

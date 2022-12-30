@@ -21,7 +21,7 @@ defmodule EventSourcedProcess.DeleteEventsCleanupTest do
     end
 
     test "then no events should be stored", state do
-      assert length(get_events(state.id)) == 0
+      assert get_events(state.id) == []
     end
 
     test "then process should be in default behavior", state do
@@ -78,7 +78,7 @@ defmodule EventSourcedProcess.DeleteEventsCleanupTest do
     end
 
     test "then no events should be stored", state do
-      assert length(get_events(state.id)) == 0
+      assert get_events(state.id) == []
     end
 
     test "then process should be in default behavior", state do

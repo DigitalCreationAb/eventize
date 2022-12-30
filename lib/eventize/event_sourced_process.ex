@@ -7,10 +7,10 @@ defmodule Eventize.EventSourcedProcess do
   @doc """
   A callback used when the entity is starting up.
   """
-  @callback start(id :: String.t()) :: {:atom, map()} | :atom | map() | nil
+  @callback start(id :: String.t()) :: {atom, map()} | atom | map() | nil
 
   defmacro __using__(_) do
-    quote location: :keep do
+    quote location: :keep, generated: true do
       use GenServer
       alias Eventize.Persistence.EventStore
       alias Eventize.Persistence.EventStore.EventData
@@ -425,23 +425,18 @@ defmodule Eventize.EventSourcedProcess do
         "#{String.downcase(module_name)}-#{id}"
       end
 
-      defoverridable get_stream_name: 1
+      def start(_id), do: %{}
+
+      defoverridable get_stream_name: 1,
+                     start: 1
     end
   end
 
   defmacro __before_compile__(_env) do
     quote do
-      def start(_id), do: %{}
-
-      defoverridable start: 1
-
       defp get_event_meta_data(_event), do: %{}
 
-      defoverridable get_event_meta_data: 1
-
       defp get_snapshot_meta_data(_snapshot), do: %{}
-
-      defoverridable get_snapshot_meta_data: 1
 
       defp apply_event(_event, state), do: state
 
@@ -453,9 +448,19 @@ defmodule Eventize.EventSourcedProcess do
 
       defp cleanup(event, state, _meta_data), do: cleanup(event, state)
 
+      defp apply_snapshot(_snapshot, state), do: state
+
       defp apply_snapshot(snapshot, state, _meta_data), do: apply_snapshot(snapshot, state)
 
-      defp apply_snapshot(_snapshot, state), do: state
+      defoverridable get_event_meta_data: 1,
+                     get_snapshot_meta_data: 1,
+                     apply_event: 2,
+                     apply_event: 3,
+                     run_cleanup: 3,
+                     cleanup: 2,
+                     cleanup: 3,
+                     apply_snapshot: 2,
+                     apply_snapshot: 3
     end
   end
 end

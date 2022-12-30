@@ -7,10 +7,11 @@ defmodule EventSourcedProcess.StopCleanupTest do
 
       pid = get_process(id)
 
-      response = GenServer.call(
-        pid,
-        :stop
-      )
+      response =
+        GenServer.call(
+          pid,
+          :stop
+        )
 
       {:ok, pid: pid, id: id, response: response}
     end
