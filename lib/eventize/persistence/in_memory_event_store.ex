@@ -1,7 +1,7 @@
 defmodule Eventize.Persistence.InMemoryEventStore do
   @moduledoc """
   InMemoryEventStore is a `Eventize.Persistence.EventStore`
-  process used to store events for `Eventize.Entities.Entity`
+  process used to store events for `EventizeEntity`
   instances in memory.
   """
   alias Eventize.Persistence.EventStore.SnapshotData
@@ -161,7 +161,15 @@ defmodule Eventize.Persistence.InMemoryEventStore do
       events ->
         new_events =
           events
-          |> Enum.filter(fn event -> event.sequence_number > version end)
+          |> Enum.filter(fn event ->
+            case version do
+              :all ->
+                true
+
+              version ->
+                event.sequence_number > version
+            end
+          end)
 
         {:reply, :ok, %State{state | streams: Map.put(streams, stream_name, new_events)}}
     end
@@ -249,7 +257,15 @@ defmodule Eventize.Persistence.InMemoryEventStore do
       items ->
         new_snapshots =
           items
-          |> Enum.filter(fn snapshot -> snapshot.version > version end)
+          |> Enum.filter(fn snapshot ->
+            case version do
+              :all ->
+                true
+
+              version ->
+                snapshot.version > version
+            end
+          end)
 
         {:reply, :ok, %State{state | snapshots: Map.put(snapshots, stream_name, new_snapshots)}}
     end

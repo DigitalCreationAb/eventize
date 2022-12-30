@@ -1,74 +1,91 @@
 defmodule Eventize.EventStoreTests do
+  defmodule EventStoreTestEventBus do
+    @moduledoc false
+
+    def load_events(stream_name, start \\ :start, max_count \\ :all) do
+      GenServer.call(
+        TestEventStore,
+        {:load_events,
+         %{
+           stream_name: stream_name,
+           start: start,
+           max_count: max_count
+         }}
+      )
+    end
+
+    def append_events(stream_name, events, expected_version \\ :any) do
+      GenServer.call(
+        TestEventStore,
+        {:append_events,
+         %{
+           stream_name: stream_name,
+           events: events,
+           expected_version: expected_version
+         }}
+      )
+    end
+
+    def delete_events(stream_name, version) do
+      GenServer.call(
+        TestEventStore,
+        {:delete_events, %{stream_name: stream_name, version: version}}
+      )
+    end
+
+    def load_snapshot(stream_name, max_version \\ :max) do
+      GenServer.call(
+        TestEventStore,
+        {:load_snapshot, %{stream_name: stream_name, max_version: max_version}}
+      )
+    end
+
+    def append_snapshot(stream_name, snapshot, version, expected_version \\ :any) do
+      GenServer.call(
+        TestEventStore,
+        {:append_snapshot,
+         %{
+           stream_name: stream_name,
+           snapshot: snapshot,
+           version: version,
+           expected_version: expected_version
+         }}
+      )
+    end
+
+    def delete_snapshots(stream_name, version) do
+      GenServer.call(
+        TestEventStore,
+        {:delete_snapshots, %{stream_name: stream_name, version: version}}
+      )
+    end
+  end
+
+  defmodule TestSnapshot do
+    @moduledoc false
+
+    @derive Jason.Encoder
+    defstruct [:title]
+  end
+
+  defmodule TestEvent do
+    @moduledoc false
+
+    @derive Jason.Encoder
+    defstruct [:title]
+  end
+
   defmacro __using__(event_store_module) do
     quote do
       use ExUnit.Case
 
+      alias Eventize.EventStoreTests.TestSnapshot
+      alias Eventize.EventStoreTests.TestEvent
+      alias Eventize.EventStoreTests.EventStoreTestEventBus
       alias Eventize.Persistence.EventStore.EventData
       alias Eventize.Persistence.EventStore.SnapshotData
 
       doctest unquote(__MODULE__)
-
-      defmodule EventStoreTestEventBus do
-        @moduledoc false
-
-        def load_events(stream_name, start \\ :start, max_count \\ :all) do
-          GenServer.call(
-            TestEventStore,
-            {:load_events,
-             %{
-               stream_name: stream_name,
-               start: start,
-               max_count: max_count
-             }}
-          )
-        end
-
-        def append_events(stream_name, events, expected_version \\ :any) do
-          GenServer.call(
-            TestEventStore,
-            {:append_events,
-             %{
-               stream_name: stream_name,
-               events: events,
-               expected_version: expected_version
-             }}
-          )
-        end
-
-        def delete_events(stream_name, version) do
-          GenServer.call(
-            TestEventStore,
-            {:delete_events, %{stream_name: stream_name, version: version}}
-          )
-        end
-
-        def load_snapshot(stream_name, max_version \\ :max) do
-          GenServer.call(
-            TestEventStore,
-            {:load_snapshot, %{stream_name: stream_name, max_version: max_version}}
-          )
-        end
-
-        def append_snapshot(stream_name, snapshot, version, expected_version \\ :any) do
-          GenServer.call(
-            TestEventStore,
-            {:append_snapshot,
-             %{
-               stream_name: stream_name,
-               snapshot: snapshot,
-               version: version,
-               expected_version: expected_version
-             }}
-          )
-        end
-
-        def delete_snapshots(stream_name, version) do
-          GenServer.call(
-            TestEventStore,
-            {:delete_snapshots, %{stream_name: stream_name, version: version}}
-          )
-        end
-      end
 
       setup_all do
         start_supervised({unquote(event_store_module), name: TestEventStore})
@@ -227,7 +244,7 @@ defmodule Eventize.EventStoreTests do
         setup do
           stream_name = UUID.uuid4()
 
-          EventStoreTestEventBus.append_events(stream_name, [{%TitleUpdated{title: "title"}, %{}}])
+          EventStoreTestEventBus.append_events(stream_name, [{%TestEvent{title: "title"}, %{}}])
 
           {:ok, stream_name: stream_name}
         end
@@ -245,7 +262,7 @@ defmodule Eventize.EventStoreTests do
         end
 
         test "then event should have correct title", state do
-          {:ok, _version, [%EventData{payload: %TitleUpdated{} = first}]} =
+          {:ok, _version, [%EventData{payload: %TestEvent{} = first}]} =
             EventStoreTestEventBus.load_events(state.stream_name)
 
           assert first.title == "title"
@@ -264,8 +281,8 @@ defmodule Eventize.EventStoreTests do
           stream_name = UUID.uuid4()
 
           EventStoreTestEventBus.append_events(stream_name, [
-            {%TitleUpdated{title: "title1"}, %{}},
-            {%TitleUpdated{title: "title2"}, %{}}
+            {%TestEvent{title: "title1"}, %{}},
+            {%TestEvent{title: "title2"}, %{}}
           ])
 
           {:ok, stream_name: stream_name}
@@ -284,14 +301,14 @@ defmodule Eventize.EventStoreTests do
         end
 
         test "then first event should have correct title", state do
-          {:ok, _version, [%EventData{payload: %TitleUpdated{} = first}, _]} =
+          {:ok, _version, [%EventData{payload: %TestEvent{} = first}, _]} =
             EventStoreTestEventBus.load_events(state.stream_name)
 
           assert first.title == "title1"
         end
 
         test "then second event should have correct title", state do
-          {:ok, _version, [_, %EventData{payload: %TitleUpdated{} = second}]} =
+          {:ok, _version, [_, %EventData{payload: %TestEvent{} = second}]} =
             EventStoreTestEventBus.load_events(state.stream_name)
 
           assert second.title == "title2"
@@ -317,11 +334,11 @@ defmodule Eventize.EventStoreTests do
           stream_name = UUID.uuid4()
 
           EventStoreTestEventBus.append_events(stream_name, [
-            {%TitleUpdated{title: "title1"}, %{}}
+            {%TestEvent{title: "title1"}, %{}}
           ])
 
           EventStoreTestEventBus.append_events(stream_name, [
-            {%TitleUpdated{title: "title2"}, %{}}
+            {%TestEvent{title: "title2"}, %{}}
           ])
 
           {:ok, stream_name: stream_name}
@@ -340,14 +357,14 @@ defmodule Eventize.EventStoreTests do
         end
 
         test "then first event should have correct title", state do
-          {:ok, _version, [%EventData{payload: %TitleUpdated{} = first}, _]} =
+          {:ok, _version, [%EventData{payload: %TestEvent{} = first}, _]} =
             EventStoreTestEventBus.load_events(state.stream_name)
 
           assert first.title == "title1"
         end
 
         test "then second event should have correct title", state do
-          {:ok, _version, [_, %EventData{payload: %TitleUpdated{} = second}]} =
+          {:ok, _version, [_, %EventData{payload: %TestEvent{} = second}]} =
             EventStoreTestEventBus.load_events(state.stream_name)
 
           assert second.title == "title2"

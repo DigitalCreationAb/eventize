@@ -36,8 +36,7 @@ defmodule Eventize.MixProject do
 
   defp get_application(:test) do
     [
-      extra_applications: [:logger, :crypto, :runtime_tools],
-      mod: {TestApplication, []}
+      extra_applications: [:logger, :crypto, :runtime_tools]
     ]
   end
 

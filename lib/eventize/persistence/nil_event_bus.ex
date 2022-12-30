@@ -1,11 +1,17 @@
-defmodule Eventize.Persistence.NilEventStore do
+defmodule Eventize.Persistence.NilEventBus do
   @moduledoc """
-  Helper to get a event_bus that doesn't store any events.
+  Helper to get a `EventStore.event_bus` that doesn't store any events.
   """
 
+  alias Eventize.Persistence.EventStore
   alias Eventize.Persistence.EventStore.EventData
   alias Eventize.Persistence.EventStore.SnapshotData
 
+  @doc """
+  Returns a `EventStore.event_bus` that doesn't store any events.
+  This can be used if you need a process that shouldn't be persisted.
+  """
+  @spec get :: EventStore.event_bus()
   def get() do
     %{
       load_events: fn _, _, _ -> {:ok, 0, []} end,

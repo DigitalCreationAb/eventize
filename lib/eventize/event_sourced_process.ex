@@ -1,24 +1,8 @@
-defmodule Eventize.Entities.PersistedEntity do
+defmodule Eventize.EventSourcedProcess do
   @moduledoc """
-  PersistedEntity is a `Eventize.Entities.Entity` that will
+  EventSourcedProcess is a `EventizeEntity` that will
   use event sourcing to store its applied events.
   """
-
-  alias Eventize.Persistence.EventStore
-
-  @type event_bus_interop :: %{
-          load_events:
-            (String.t(), :start | non_neg_integer(), :all | non_neg_integer() ->
-               EventStore.events_response()),
-          append_events:
-            (String.t(), list({term(), map()}), non_neg_integer() -> EventStore.events_response()),
-          delete_events: (String.t(), non_neg_integer() -> EventStore.delete_response()),
-          load_snapshot: (String.t(), :max | non_neg_integer() -> EventStore.snapshot_response()),
-          append_snapshot:
-            (String.t(), {term(), map()}, non_neg_integer(), :any | non_neg_integer() ->
-               EventStore.snapshot_response()),
-          delete_snapshots: (String.t(), non_neg_integer() -> EventStore.delete_response())
-        }
 
   @doc """
   A callback used when the entity is starting up.
@@ -32,93 +16,16 @@ defmodule Eventize.Entities.PersistedEntity do
       alias Eventize.Persistence.EventStore.EventData
       alias Eventize.Persistence.EventStore.SnapshotData
 
-      @before_compile Eventize.Entities.PersistedEntity
-      @behaviour Eventize.Entities.PersistedEntity
-
-      defguardp is_event_bus_interop(event_bus)
-                when is_map(event_bus) and is_map_key(event_bus, :load_events) and
-                       is_map_key(event_bus, :append_events) and
-                       is_map_key(event_bus, :delete_events) and
-                       is_map_key(event_bus, :load_snapshot) and
-                       is_map_key(event_bus, :append_snapshot) and
-                       is_map_key(event_bus, :delete_snapshots) and
-                       is_function(event_bus.load_events, 3) and
-                       is_function(event_bus.append_events, 3) and
-                       is_function(event_bus.delete_events, 2) and
-                       is_function(event_bus.load_snapshot, 2) and
-                       is_function(event_bus.append_snapshot, 4) and
-                       is_function(event_bus.delete_snapshots, 2)
+      @before_compile Eventize.EventSourcedProcess
+      @behaviour Eventize.EventSourcedProcess
 
       @doc """
-      Initializes the PersistedEntity with the initial state.
+      Initializes the EventSourcedProcess with the initial state.
       Then it uses `:continue` to read the events from the
       `Eventize.Persistence.EventStore` in the background.
       """
       def init(%{id: id, event_bus: event_bus}) do
-        event_bus =
-          case event_bus do
-            nil ->
-              Eventize.Persistence.NilEventStore.get()
-
-            eb when is_event_bus_interop(eb) ->
-              eb
-
-            pid ->
-              %{
-                load_events: fn stream_name, start, max_count ->
-                  GenServer.call(
-                    pid,
-                    {:load_events,
-                     %{
-                       stream_name: stream_name,
-                       start: start,
-                       max_count: max_count
-                     }}
-                  )
-                end,
-                append_events: fn stream_name, events, expected_version ->
-                  GenServer.call(
-                    pid,
-                    {:append_events,
-                     %{
-                       stream_name: stream_name,
-                       events: events,
-                       expected_version: expected_version
-                     }}
-                  )
-                end,
-                delete_events: fn stream_name, version ->
-                  GenServer.call(
-                    pid,
-                    {:delete_events, %{stream_name: stream_name, version: version}}
-                  )
-                end,
-                load_snapshot: fn stream_name, max_version ->
-                  GenServer.call(
-                    pid,
-                    {:load_snapshot, %{stream_name: stream_name, max_version: max_version}}
-                  )
-                end,
-                append_snapshot: fn stream_name, snapshot, version, expected_version ->
-                  GenServer.call(
-                    pid,
-                    {:append_snapshot,
-                     %{
-                       stream_name: stream_name,
-                       snapshot: snapshot,
-                       version: version,
-                       expected_version: expected_version
-                     }}
-                  )
-                end,
-                delete_snapshots: fn stream_name, version ->
-                  GenServer.call(
-                    pid,
-                    {:delete_snapshots, %{stream_name: stream_name, version: version}}
-                  )
-                end
-              }
-          end
+        event_bus = Eventize.Persistence.EventStore.parse_event_bus(event_bus)
 
         entity_state =
           case start(id) do
@@ -160,7 +67,7 @@ defmodule Eventize.Entities.PersistedEntity do
               {new_state, new_behavior, version}
 
             {:ok,
-             %SnapshotData{payload: payload, meta_data: meta_data, version: version} = snapshot} ->
+             %SnapshotData{payload: _payload, meta_data: _meta_data, version: version} = snapshot} ->
               {new_state, new_behavior} = run_snapshot_handler(snapshot, entity_state)
 
               {:ok, version, events} = event_bus.load_events.(get_stream_name(id), version, :all)
@@ -177,7 +84,7 @@ defmodule Eventize.Entities.PersistedEntity do
       Handle any command sent to the entity.
       """
       def handle_cast(
-            {:execute, command, %{message_id: message_id, correlation_id: correlation_id}},
+            {command, %{message_id: message_id, correlation_id: correlation_id}},
             %{id: id, state: state, behavior: behavior} = entity_state
           ) do
         {new_state, events} =
@@ -200,24 +107,24 @@ defmodule Eventize.Entities.PersistedEntity do
         handle_cleanup({new_state, events}, {:noreply, new_state})
       end
 
-      def handle_cast({:execute, command, %{message_id: message_id}}, entity_state),
+      def handle_cast({command, %{message_id: message_id}}, entity_state),
         do:
           handle_cast(
-            {:execute, command, %{message_id: message_id, correlation_id: UUID.uuid4()}},
+            {command, %{message_id: message_id, correlation_id: UUID.uuid4()}},
             entity_state
           )
 
-      def handle_cast({:execute, command, %{correlation_id: correlation_id}}, entity_state),
+      def handle_cast({command, %{correlation_id: correlation_id}}, entity_state),
         do:
           handle_cast(
-            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: correlation_id}},
+            {command, %{message_id: UUID.uuid4(), correlation_id: correlation_id}},
             entity_state
           )
 
-      def handle_cast({:execute, command}, entity_state),
+      def handle_cast(command, entity_state),
         do:
           handle_cast(
-            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}},
+            {command, %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}},
             entity_state
           )
 
@@ -225,7 +132,7 @@ defmodule Eventize.Entities.PersistedEntity do
       Handle any command sent to the entity where the sender wants a response back.
       """
       def handle_call(
-            {:execute, command, %{message_id: message_id, correlation_id: correlation_id}},
+            {command, %{message_id: message_id, correlation_id: correlation_id}},
             from,
             %{id: id, state: state, behavior: behavior} = entity_state
           ) do
@@ -261,26 +168,26 @@ defmodule Eventize.Entities.PersistedEntity do
         handle_cleanup({new_state, events}, {:reply, response, new_state})
       end
 
-      def handle_call({:execute, command, %{message_id: message_id}}, from, entity_state),
+      def handle_call({command, %{message_id: message_id}}, from, entity_state),
         do:
           handle_call(
-            {:execute, command, %{message_id: message_id, correlation_id: UUID.uuid4()}},
+            {command, %{message_id: message_id, correlation_id: UUID.uuid4()}},
             from,
             entity_state
           )
 
-      def handle_call({:execute, command, %{correlation_id: correlation_id}}, from, entity_state),
+      def handle_call({command, %{correlation_id: correlation_id}}, from, entity_state),
         do:
           handle_call(
-            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: correlation_id}},
+            {command, %{message_id: UUID.uuid4(), correlation_id: correlation_id}},
             from,
             entity_state
           )
 
-      def handle_call({:execute, command}, from, entity_state),
+      def handle_call(command, from, entity_state),
         do:
           handle_call(
-            {:execute, command, %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}},
+            {command, %{message_id: UUID.uuid4(), correlation_id: UUID.uuid4()}},
             from,
             entity_state
           )
@@ -339,24 +246,18 @@ defmodule Eventize.Entities.PersistedEntity do
       end
 
       defp run_event_handlers(events, state, current_behavior) when is_list(events) do
-        Enum.reduce(events, {state, current_behavior}, fn event, {state, behavior} ->
-          case run_event_applier(event, state) do
+        Enum.reduce(events, {state, current_behavior}, fn %EventData{
+                                                            payload: payload,
+                                                            meta_data: meta_data,
+                                                            sequence_number: sequence_number
+                                                          },
+                                                          {state, behavior} ->
+          case apply_event(payload, state, Map.put(meta_data, :sequence_number, sequence_number)) do
             {new_state, nil} -> {new_state, __MODULE__}
             {new_state, new_behavior} -> {new_state, new_behavior}
             new_state -> {new_state, behavior}
           end
         end)
-      end
-
-      defp run_event_applier(
-             %EventData{
-               payload: payload,
-               meta_data: meta_data,
-               sequence_number: sequence_number
-             },
-             state
-           ) do
-        apply_event(payload, state, Map.put(meta_data, :sequence_number, sequence_number))
       end
 
       defp run_snapshot_handler(
