@@ -23,15 +23,15 @@ defmodule Eventize.SnapshotCleanupTestProcess do
     [{:snapshot_requested, %{}}]
   end
 
-  defp apply_event({:state_updated, new_state}, _state) do
+  def apply_event({:state_updated, new_state}, _state) do
     new_state
   end
 
-  defp apply_snapshot({:test_snapshot, new_state}, _state) do
+  def apply_snapshot({:test_snapshot, new_state}, _state) do
     new_state
   end
 
-  defp cleanup({:snapshot_requested, _}, state, %{sequence_number: version}) do
+  def cleanup({:snapshot_requested, _}, state, %{sequence_number: version}) do
     {:take_snapshot, {{:test_snapshot, state}, version}}
   end
 end

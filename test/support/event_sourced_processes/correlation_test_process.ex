@@ -27,7 +27,7 @@ defmodule Eventize.CorrelationTestProcess do
     [{:test_event, %{correlation_id: correlation_id, causation_id: causation_id}}]
   end
 
-  defp apply_event({:test_event, event}, state, meta_data) do
+  def apply_event({:test_event, event}, state, meta_data) do
     Map.put(state, :meta_data_correlation_id, meta_data.correlation_id)
     |> Map.put(:meta_data_causation_id, meta_data.causation_id)
     |> Map.put(:event_correlation_id, event.correlation_id)

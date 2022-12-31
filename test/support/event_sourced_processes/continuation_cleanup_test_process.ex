@@ -27,7 +27,7 @@ defmodule Eventize.ContinuationCleanupTestProcess do
     {:noreply, %{entity_state | state: requested_state}}
   end
 
-  defp cleanup({:continuation_requested, requested_state}, _state) do
+  def cleanup({:continuation_requested, requested_state}, _state) do
     {:continue, {:set_state, requested_state}}
   end
 end

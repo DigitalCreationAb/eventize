@@ -23,7 +23,7 @@ defmodule Eventize.DeleteEventsCleanupTestProcess do
     [{:delete_requested, to}]
   end
 
-  defp cleanup({:delete_requested, to}, _state) do
+  def cleanup({:delete_requested, to}, _state) do
     {:delete_events, to}
   end
 end

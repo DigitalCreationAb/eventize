@@ -15,7 +15,7 @@ defmodule Eventize.StopCleanupTestProcess do
     {[{:stop_requested, %{}}], :ok}
   end
 
-  defp cleanup({:stop_requested, _}, _state) do
+  def cleanup({:stop_requested, _}, _state) do
     :stop
   end
 end

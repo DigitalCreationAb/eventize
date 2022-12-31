@@ -15,7 +15,7 @@ defmodule Eventize.HibernateCleanupTestProcess do
     {[{:hibernation_requested, %{}}], :ok}
   end
 
-  defp cleanup({:hibernation_requested, _}, _state) do
+  def cleanup({:hibernation_requested, _}, _state) do
     :hibernate
   end
 end

@@ -23,7 +23,7 @@ defmodule Eventize.StateTestProcess do
     [{:state_set, state}]
   end
 
-  defp apply_event({:state_set, new_state}, _state) do
+  def apply_event({:state_set, new_state}, _state) do
     new_state
   end
 end

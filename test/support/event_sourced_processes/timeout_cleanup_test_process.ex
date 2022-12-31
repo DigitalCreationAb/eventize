@@ -15,7 +15,7 @@ defmodule Eventize.TimeoutCleanupTestProcess do
     {[{:timeout_requested, %{seconds: timeout}}], :ok}
   end
 
-  defp cleanup({:timeout_requested, %{seconds: timeout}}, _state) do
+  def cleanup({:timeout_requested, %{seconds: timeout}}, _state) do
     {:timeout, timeout}
   end
 end
