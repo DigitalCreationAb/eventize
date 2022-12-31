@@ -33,11 +33,8 @@ defmodule Eventize.EventSourcedProcess.Initialization do
 
       @behaviour Eventize.EventSourcedProcess.Initialization
 
-      @doc """
-      Initializes the EventSourcedProcess with the initial state.
-      Then it uses `:continue` to read the events from the
-      `Eventize.Persistence.EventStore` in the background.
-      """
+      @doc false
+      @impl GenServer
       def init(%{id: id, event_bus: event_bus}) do
         event_bus = Eventize.Persistence.EventStore.parse_event_bus(event_bus)
 
@@ -69,13 +66,11 @@ defmodule Eventize.EventSourcedProcess.Initialization do
         {:ok, process_state, {:continue, :initialize_events}}
       end
 
+      @impl GenServer
       def init(%{id: id} = data), do: init(Map.put(data, :event_bus, nil))
 
-      @doc """
-      This continuation will run after starting the process
-      and is used to load the state of the process from the
-      configured `Eventize.Persistence.EventStore`.
-      """
+      @doc false
+      @impl GenServer
       def handle_continue(
             :initialize_events,
             %EventSourcedProcessState{

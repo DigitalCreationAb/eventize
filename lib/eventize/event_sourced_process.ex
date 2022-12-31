@@ -34,15 +34,8 @@ defmodule Eventize.EventSourcedProcess do
 
       @behaviour Eventize.EventSourcedProcess
 
-      @doc """
-      This will handle any message sent to this process
-      and use the `c:execute_cast/2` callback to execute
-      the message and get any events that should be applied
-      to the process.
-
-      It will also run any configured cleanups for each event
-      that is returned.
-      """
+      @doc false
+      @impl GenServer
       def handle_cast(
             {message, %{message_id: message_id, correlation_id: correlation_id}},
             %EventSourcedProcessState{id: id, state: state, behavior: behavior} = process_state
@@ -67,6 +60,7 @@ defmodule Eventize.EventSourcedProcess do
         handle_cleanup({new_state, events}, {:noreply, new_state})
       end
 
+      @impl GenServer
       def handle_cast({message, %{message_id: message_id}}, process_state),
         do:
           handle_cast(
@@ -74,6 +68,7 @@ defmodule Eventize.EventSourcedProcess do
             process_state
           )
 
+      @impl GenServer
       def handle_cast({message, %{correlation_id: correlation_id}}, process_state),
         do:
           handle_cast(
@@ -81,6 +76,7 @@ defmodule Eventize.EventSourcedProcess do
             process_state
           )
 
+      @impl GenServer
       def handle_cast(message, process_state),
         do:
           handle_cast(
@@ -88,16 +84,8 @@ defmodule Eventize.EventSourcedProcess do
             process_state
           )
 
-      @doc """
-      This will handle any message sent to this process
-      and use the `c:execute_call/3` callback to execute
-      the message and get any events that should be applied
-      to the process as well as the response that should
-      be sent back to the caller.
-
-      It will also run any configured cleanups for each event
-      that is returned.
-      """
+      @doc false
+      @impl GenServer
       def handle_call(
             {message, %{message_id: message_id, correlation_id: correlation_id}},
             from,
@@ -135,6 +123,7 @@ defmodule Eventize.EventSourcedProcess do
         handle_cleanup({new_state, events}, {:reply, response, new_state})
       end
 
+      @impl GenServer
       def handle_call({message, %{message_id: message_id}}, from, process_state),
         do:
           handle_call(
@@ -143,6 +132,7 @@ defmodule Eventize.EventSourcedProcess do
             process_state
           )
 
+      @impl GenServer
       def handle_call({message, %{correlation_id: correlation_id}}, from, process_state),
         do:
           handle_call(
@@ -151,6 +141,7 @@ defmodule Eventize.EventSourcedProcess do
             process_state
           )
 
+      @impl GenServer
       def handle_call(message, from, process_state),
         do:
           handle_call(

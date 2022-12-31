@@ -160,9 +160,8 @@ defmodule Eventize.EventSourcedProcess.Cleanup do
 
       @before_compile Eventize.EventSourcedProcess.Cleanup
 
-      @doc """
-      Stops the process after the desired timeout.
-      """
+      @doc false
+      @impl GenServer
       def handle_info(:timeout, state) do
         {:stop, :normal, state}
       end

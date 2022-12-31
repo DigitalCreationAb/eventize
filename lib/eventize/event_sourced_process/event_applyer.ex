@@ -34,18 +34,18 @@ defmodule Eventize.EventSourcedProcess.EventApplyer do
       @before_compile Eventize.EventSourcedProcess.EventApplyer
 
       def apply_events(
-             events,
-             %EventSourcedProcessState{
-               id: id,
-               state: state,
-               behavior: behavior,
-               event_bus: event_bus,
-               version: version,
-               stream_name: stream_name
-             } = process_state,
-             %{} = additional_meta_data
-           )
-           when is_list(events) do
+            events,
+            %EventSourcedProcessState{
+              id: id,
+              state: state,
+              behavior: behavior,
+              event_bus: event_bus,
+              version: version,
+              stream_name: stream_name
+            } = process_state,
+            %{} = additional_meta_data
+          )
+          when is_list(events) do
         {:ok, version, stored_events} =
           event_bus.append_events.(
             stream_name,
@@ -82,9 +82,9 @@ defmodule Eventize.EventSourcedProcess.EventApplyer do
       end
 
       def run_snapshot_handler(
-             %SnapshotData{payload: payload, meta_data: meta_data, version: version},
-             %EventSourcedProcessState{state: state, behavior: behavior}
-           ) do
+            %SnapshotData{payload: payload, meta_data: meta_data, version: version},
+            %EventSourcedProcessState{state: state, behavior: behavior}
+          ) do
         response = apply_snapshot(payload, state, Map.put(meta_data, :version, version))
 
         case response do
