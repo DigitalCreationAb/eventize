@@ -1,7 +1,7 @@
 defmodule Eventize.MixProject do
   use Mix.Project
 
-  @version "0.1.2"
+  @version "0.1.3"
 
   def project do
     [
@@ -26,7 +26,7 @@ defmodule Eventize.MixProject do
 
   defp package do
     [
-      files: ["lib", "mix.exs", "README*", "LICENSE*"],
+      files: ["lib", "mix.exs", ".formatter.exs", "README*", "LICENSE*", "test/support"],
       maintainers: ["Mattias Jakobsson"],
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/DigitalCreationAb/eventize"}
