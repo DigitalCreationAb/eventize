@@ -30,5 +30,5 @@ test: restore
 .PHONY: publish
 publish: build docs
 ifdef HEX_API_KEY
-	mix hex.publish
+	HEX_API_KEY=$(HEX_API_KEY) mix hex.publish --yes
 endif
