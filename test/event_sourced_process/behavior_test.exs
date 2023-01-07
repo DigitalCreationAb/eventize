@@ -24,8 +24,8 @@ defmodule EventSourcedProcess.BehaviorTest do
       assert [{:seconday_behavior_entered, _}] = get_events(state.id) |> get_payload()
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in secondary behavior", state do
@@ -54,8 +54,8 @@ defmodule EventSourcedProcess.BehaviorTest do
       assert [{:seconday_behavior_entered, _}] = get_events(state.id) |> get_payload()
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in secondary behavior", state do
@@ -79,15 +79,15 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then one event should be stored", state do
-      assert length(get_events(state.id, 2)) == 1
+      assert length(get_events(state.id, 1)) == 1
     end
 
     test "then a :initial_behavior_entered event should be stored", state do
-      assert [{:initial_behavior_entered, _}] = get_events(state.id, 2) |> get_payload()
+      assert [{:initial_behavior_entered, _}] = get_events(state.id, 1) |> get_payload()
     end
 
-    test "then process version should be 2", state do
-      assert get_process_version(state.id) == 2
+    test "then process version should be 1", state do
+      assert get_process_version(state.pid) == 1
     end
 
     test "then process should be in initial behavior", state do
@@ -109,15 +109,15 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then one event should be stored", state do
-      assert length(get_events(state.id, 2)) == 1
+      assert length(get_events(state.id, 1)) == 1
     end
 
     test "then a :initial_behavior_entered event should be stored", state do
-      assert [{:initial_behavior_entered, _}] = get_events(state.id, 2) |> get_payload()
+      assert [{:initial_behavior_entered, _}] = get_events(state.id, 1) |> get_payload()
     end
 
-    test "then process version should be 2", state do
-      assert get_process_version(state.id) == 2
+    test "then process version should be 1", state do
+      assert get_process_version(state.pid) == 1
     end
 
     test "then process should be in initial behavior", state do
@@ -144,8 +144,8 @@ defmodule EventSourcedProcess.BehaviorTest do
       assert get_events(state.id) == []
     end
 
-    test "then process version should be 0", state do
-      assert get_process_version(state.id) == 0
+    test "then process version should be :empty", state do
+      assert get_process_version(state.pid) == :empty
     end
 
     test "then process should be in initial behavior", state do
@@ -170,8 +170,8 @@ defmodule EventSourcedProcess.BehaviorTest do
       assert get_events(state.id) == []
     end
 
-    test "then process version should be 0", state do
-      assert get_process_version(state.id) == 0
+    test "then process version should be :empty", state do
+      assert get_process_version(state.pid) == :empty
     end
 
     test "then process should be in initial behavior", state do
@@ -195,11 +195,11 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then no event should be stored", state do
-      assert get_events(state.id, 2) == []
+      assert get_events(state.id, 1) == []
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in secondary behavior", state do
@@ -221,11 +221,11 @@ defmodule EventSourcedProcess.BehaviorTest do
     end
 
     test "then no event should be stored", state do
-      assert get_events(state.id, 2) == []
+      assert get_events(state.id, 1) == []
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in secondary behavior", state do

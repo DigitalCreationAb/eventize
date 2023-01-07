@@ -24,8 +24,8 @@ defmodule EventSourcedProcess.StateTest do
       assert [{:state_set, %{test: "Test"}}] = get_events(state.id) |> get_payload()
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in default behavior", state do
@@ -58,8 +58,8 @@ defmodule EventSourcedProcess.StateTest do
       assert [{:state_set, %{test: "Test"}}] = get_events(state.id) |> get_payload()
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in default behavior", state do

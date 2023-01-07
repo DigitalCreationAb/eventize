@@ -8,9 +8,10 @@ defmodule Eventize.EventSourcedProcess do
   These function very similar, but instead of modifying the state
   you can return a list of events that should be applied. These
   events will be stored using the configured event bus and then
-  applied to the process using the `c:apply_event/2` or `c:apply_event/3`
-  callback.
-  All stored events will also be read on startup and the `c:apply_event/3`
+  applied to the process using the `c:Eventize.EventSourcedProcess.EventApplyer.apply_event/2`
+  or `c:Eventize.EventSourcedProcess.EventApplyer.apply_event/3` callback.
+  All stored events will also be read on startup and the
+  `c:Eventize.EventSourcedProcess.EventApplyer.apply_event/3`
   functions will be called then as well to make sure that the state
   is up to date.
   """

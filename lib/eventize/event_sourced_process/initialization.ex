@@ -29,6 +29,7 @@ defmodule Eventize.EventSourcedProcess.Initialization do
   defmacro __using__(_) do
     quote location: :keep, generated: true do
       alias Eventize.Persistence.EventStore.SnapshotData
+      alias Eventize.Persistence.EventStore.EventData
       alias Eventize.EventSourcedProcessState
 
       @behaviour Eventize.EventSourcedProcess.Initialization
@@ -58,7 +59,7 @@ defmodule Eventize.EventSourcedProcess.Initialization do
           behavior: initial_behavior,
           id: id,
           event_bus: event_bus,
-          version: 0,
+          version: :empty,
           stream_name: get_stream_name(id),
           process: __MODULE__
         }
@@ -83,21 +84,47 @@ defmodule Eventize.EventSourcedProcess.Initialization do
         {new_state, new_behavior, version} =
           case event_bus.load_snapshot.(stream_name, :max) do
             {:ok, nil} ->
-              {:ok, version, events} = event_bus.load_events.(stream_name, :start, :all)
+              {:ok, events} = event_bus.load_events.(stream_name, :start, :all)
 
               {new_state, new_behavior} = run_event_handlers(events, state, behavior)
 
-              {new_state, new_behavior, version}
+              new_version =
+                case events do
+                  [] ->
+                    :empty
+
+                  events ->
+                    events
+                    |> Enum.map(fn %EventData{sequence_number: sequence_number} ->
+                      sequence_number
+                    end)
+                    |> Enum.max()
+                end
+
+              {new_state, new_behavior, new_version}
 
             {:ok,
              %SnapshotData{payload: _payload, meta_data: _meta_data, version: version} = snapshot} ->
               {new_state, new_behavior} = run_snapshot_handler(snapshot, process_state)
 
-              {:ok, version, events} = event_bus.load_events.(stream_name, version, :all)
+              {:ok, events} = event_bus.load_events.(stream_name, version, :all)
 
               {new_state, new_behavior} = run_event_handlers(events, new_state, new_behavior)
 
-              {new_state, new_behavior, version}
+              new_version =
+                case events do
+                  [] ->
+                    :empty
+
+                  events ->
+                    events
+                    |> Enum.map(fn %EventData{sequence_number: sequence_number} ->
+                      sequence_number
+                    end)
+                    |> Enum.max()
+                end
+
+              {new_state, new_behavior, new_version}
           end
 
         {:noreply,

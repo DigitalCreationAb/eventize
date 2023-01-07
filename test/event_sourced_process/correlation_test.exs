@@ -47,8 +47,8 @@ defmodule EventSourcedProcess.CorrelationTest do
              ]
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in default behavior", state do
@@ -152,8 +152,8 @@ defmodule EventSourcedProcess.CorrelationTest do
              ]
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then process should be in default behavior", state do

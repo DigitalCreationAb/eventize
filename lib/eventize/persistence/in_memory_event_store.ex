@@ -75,12 +75,6 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         e -> e
       end
 
-    latest_sequence_number =
-      case events do
-        [%StoredEvent{sequence_number: sequence_number} | _tail] -> sequence_number
-        _ -> 0
-      end
-
     deserialized_events =
       events
       |> Enum.map(fn event -> deserialize(event, serializer) end)
@@ -98,7 +92,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         count -> deserialized_events |> Enum.slice(0, count)
       end
 
-    {:reply, {:ok, latest_sequence_number, deserialized_events}, state}
+    {:reply, {:ok, deserialized_events}, state}
   end
 
   def append_events(
@@ -115,14 +109,19 @@ defmodule Eventize.Persistence.InMemoryEventStore do
     latest_sequence_number =
       case current_events do
         [%StoredEvent{sequence_number: sequence_number} | _tail] -> sequence_number
-        _ -> 0
+        _ -> :empty
       end
 
     case check_expected_version(latest_sequence_number, expected_version) do
       :ok ->
         serialized_events =
           events
-          |> Enum.with_index(latest_sequence_number + 1)
+          |> Enum.with_index(
+            case latest_sequence_number do
+              :empty -> 0
+              i -> i + 1
+            end
+          )
           |> Enum.map(fn {event, seq} -> serialize(event, seq, serializer, :event) end)
 
         new_events = prepend(current_events, serialized_events)
@@ -132,15 +131,8 @@ defmodule Eventize.Persistence.InMemoryEventStore do
           | streams: Map.put(streams, stream_name, new_events)
         }
 
-        version =
-          case new_events do
-            [head | _] -> head.sequence_number
-            _ -> latest_sequence_number
-          end
-
         {:reply,
-         {:ok, version,
-          serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end)},
+         {:ok, serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end)},
          new_state}
 
       err ->
@@ -160,7 +152,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
 
         events ->
           events
-          |> Enum.filter(fn event -> should_remove(event, version) end)
+          |> Enum.filter(fn event -> !should_remove(event, version) end)
       end
 
     {:reply, :ok, %State{state | streams: Map.put(streams, stream_name, new_events)}}
@@ -194,11 +186,10 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         %{
           stream_name: stream_name,
           snapshot: snapshot,
-          version: version,
-          expected_version: expected_version
+          version: version
         },
         _from,
-        %State{snapshots: snapshots, streams: streams, serializer: serializer} = state
+        %State{snapshots: snapshots, serializer: serializer} = state
       ) do
     current_snapshots =
       case Map.get(snapshots, stream_name) do
@@ -206,34 +197,16 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         s -> s
       end
 
-    current_events =
-      case Map.get(streams, stream_name) do
-        nil -> []
-        e -> e
-      end
+    serialized_snapshot = serialize(snapshot, version, serializer, :snapshot)
 
-    latest_sequence_number =
-      case current_events do
-        [%StoredEvent{sequence_number: sequence_number} | _tail] -> sequence_number
-        _ -> 0
-      end
+    new_snapshots = [serialized_snapshot | current_snapshots]
 
-    case check_expected_version(latest_sequence_number, expected_version) do
-      :ok ->
-        serialized_snapshot = serialize(snapshot, version, serializer, :snapshot)
+    new_state = %State{
+      state
+      | snapshots: Map.put(snapshots, stream_name, new_snapshots)
+    }
 
-        new_snapshots = [serialized_snapshot | current_snapshots]
-
-        new_state = %State{
-          state
-          | snapshots: Map.put(snapshots, stream_name, new_snapshots)
-        }
-
-        {:reply, {:ok, deserialize(serialized_snapshot, serializer)}, new_state}
-
-      err ->
-        {:reply, err, state}
-    end
+    {:reply, {:ok, deserialize(serialized_snapshot, serializer)}, new_state}
   end
 
   def delete_snapshots(
@@ -248,7 +221,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
 
         items ->
           items
-          |> Enum.filter(fn snapshot -> should_remove(snapshot, version) end)
+          |> Enum.filter(fn snapshot -> !should_remove(snapshot, version) end)
       end
 
     {:reply, :ok, %State{state | snapshots: Map.put(snapshots, stream_name, new_snapshots)}}
@@ -260,7 +233,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         true
 
       version ->
-        snapshot_version > version
+        snapshot_version <= version
     end
   end
 
@@ -270,7 +243,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         true
 
       version ->
-        event_sequence_number > version
+        event_sequence_number <= version
     end
   end
 

@@ -35,7 +35,7 @@ defmodule Eventize.Persistence.EventStore do
   @type append_events_command :: %{
           stream_name: String.t(),
           events: list({term(), map()}),
-          expected_version: :any | non_neg_integer()
+          expected_version: :any | :empty | non_neg_integer()
         }
 
   @typedoc """
@@ -57,8 +57,7 @@ defmodule Eventize.Persistence.EventStore do
   @type append_snapshot_command :: %{
           stream_name: String.t(),
           snapshot: {term(), map()},
-          version: non_neg_integer(),
-          expected_version: :any | non_neg_integer()
+          version: non_neg_integer()
         }
 
   @typedoc """
@@ -69,7 +68,7 @@ defmodule Eventize.Persistence.EventStore do
   @typedoc """
   Represents the response that a caller will receive when reading or appending events.
   """
-  @type events_response :: {:ok, non_neg_integer(), list(EventData)} | {:error, term()}
+  @type events_response :: {:ok, list(EventData)} | {:error, term()}
 
   @typedoc """
   Represents the response that a caller will receive when reading or appending a snapshot.
@@ -86,11 +85,12 @@ defmodule Eventize.Persistence.EventStore do
             (String.t(), :start | non_neg_integer(), :all | non_neg_integer() ->
                events_response()),
           append_events:
-            (String.t(), list({term(), map()}), non_neg_integer() -> events_response()),
+            (String.t(), list({term(), map()}), :any | :empty | non_neg_integer() ->
+               events_response()),
           delete_events: (String.t(), non_neg_integer() -> delete_response()),
           load_snapshot: (String.t(), :max | non_neg_integer() -> snapshot_response()),
           append_snapshot:
-            (String.t(), {term(), map()}, non_neg_integer(), :any | non_neg_integer() ->
+            (String.t(), {term(), map()}, non_neg_integer() ->
                snapshot_response()),
           delete_snapshots: (String.t(), non_neg_integer() -> delete_response())
         }
@@ -204,15 +204,14 @@ defmodule Eventize.Persistence.EventStore do
               {:load_snapshot, %{stream_name: stream_name, max_version: max_version}}
             )
           end,
-          append_snapshot: fn stream_name, snapshot, version, expected_version ->
+          append_snapshot: fn stream_name, snapshot, version ->
             GenServer.call(
               pid,
               {:append_snapshot,
                %{
                  stream_name: stream_name,
                  snapshot: snapshot,
-                 version: version,
-                 expected_version: expected_version
+                 version: version
                }}
             )
           end,

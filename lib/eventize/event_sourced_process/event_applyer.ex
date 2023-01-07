@@ -46,7 +46,7 @@ defmodule Eventize.EventSourcedProcess.EventApplyer do
             %{} = additional_meta_data
           )
           when is_list(events) do
-        {:ok, version, stored_events} =
+        {:ok, stored_events} =
           event_bus.append_events.(
             stream_name,
             events
@@ -58,11 +58,22 @@ defmodule Eventize.EventSourcedProcess.EventApplyer do
 
         {new_state, new_behavior} = run_event_handlers(stored_events, state, behavior)
 
+        new_version =
+          case stored_events do
+            [] ->
+              version
+
+            events ->
+              events
+              |> Enum.map(fn %EventData{sequence_number: sequence_number} -> sequence_number end)
+              |> Enum.max()
+          end
+
         {%EventSourcedProcessState{
            process_state
            | state: new_state,
              behavior: new_behavior,
-             version: version
+             version: new_version
          }, stored_events}
       end
 

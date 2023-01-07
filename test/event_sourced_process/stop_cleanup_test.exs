@@ -24,10 +24,6 @@ defmodule EventSourcedProcess.StopCleanupTest do
       assert length(get_events(state.id)) == 1
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
-    end
-
     test "then a :stop_requested event should be stored", state do
       assert [{:stop_requested, _}] = get_events(state.id) |> get_payload()
     end

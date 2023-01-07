@@ -14,9 +14,9 @@ defmodule Eventize.Persistence.NilEventBus do
   @spec get :: EventStore.event_bus()
   def get() do
     %{
-      load_events: fn _, _, _ -> {:ok, 0, []} end,
+      load_events: fn _, _, _ -> {:ok, []} end,
       append_events: fn _, events, _ ->
-        {:ok, 0,
+        {:ok,
          events
          |> Enum.map(fn {event, meta_data} ->
            %EventData{
@@ -28,7 +28,7 @@ defmodule Eventize.Persistence.NilEventBus do
       end,
       delete_events: fn _, _ -> :ok end,
       load_snapshot: fn _, _ -> {:ok, nil} end,
-      append_snapshot: fn _, {snapshot, meta_data}, version, _ ->
+      append_snapshot: fn _, {snapshot, meta_data}, version ->
         {:ok,
          %SnapshotData{
            payload: snapshot,

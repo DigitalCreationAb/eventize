@@ -38,7 +38,7 @@ defmodule EventSourcedProcess.DeleteEventsCleanupTest do
       response =
         GenServer.call(
           pid,
-          {:delete_events, 1}
+          {:delete_events, 0}
         )
 
       {:ok, pid: pid, id: id, response: response}
@@ -53,7 +53,7 @@ defmodule EventSourcedProcess.DeleteEventsCleanupTest do
     end
 
     test "then a :delete_requested event should be stored", state do
-      assert [{:delete_requested, 1}] = get_events(state.id) |> get_payload()
+      assert [{:delete_requested, 0}] = get_events(state.id) |> get_payload()
     end
 
     test "then process should be in default behavior", state do
@@ -94,7 +94,7 @@ defmodule EventSourcedProcess.DeleteEventsCleanupTest do
 
       GenServer.call(
         pid,
-        {:delete_events, 1}
+        {:delete_events, 0}
       )
 
       :pong = GenServer.call(pid, :ping)
@@ -107,7 +107,7 @@ defmodule EventSourcedProcess.DeleteEventsCleanupTest do
     end
 
     test "then a :delete_requested event should be stored", state do
-      assert [{:delete_requested, 1}] = get_events(state.id) |> get_payload()
+      assert [{:delete_requested, 0}] = get_events(state.id) |> get_payload()
     end
 
     test "then process should be in default behavior", state do

@@ -106,7 +106,7 @@ defmodule Eventize.Test.EventSourcedProcessTests do
       end
 
       defp get_process(id, initial_events) when is_list(initial_events) do
-        {:ok, _, _} =
+        {:ok, _} =
           EventStoreTestEventBus.append_events(
             @event_store_name,
             get_stream_name(id),
@@ -139,7 +139,7 @@ defmodule Eventize.Test.EventSourcedProcessTests do
       defoverridable get_stream_name: 1
 
       defp get_events(id, from \\ :start) do
-        {:ok, _, events} =
+        {:ok, events} =
           EventStoreTestEventBus.load_events(@event_store_name, get_stream_name(id), from)
 
         events
@@ -192,11 +192,10 @@ defmodule Eventize.Test.EventSourcedProcessTests do
         events |> Enum.map(fn event -> get_meta_data(event) end)
       end
 
-      defp get_process_version(id) do
-        {:ok, version, _} =
-          EventStoreTestEventBus.load_events(@event_store_name, get_stream_name(id))
+      defp get_process_version(pid) do
+        state = :sys.get_state(pid)
 
-        version
+        state.version
       end
 
       defp get_current_behavior(pid) do

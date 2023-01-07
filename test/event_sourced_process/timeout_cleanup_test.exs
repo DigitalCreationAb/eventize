@@ -24,8 +24,8 @@ defmodule EventSourcedProcess.TimeoutCleanupTest do
       assert length(get_events(state.id)) == 1
     end
 
-    test "then process version should be 1", state do
-      assert get_process_version(state.id) == 1
+    test "then process version should be 0", state do
+      assert get_process_version(state.pid) == 0
     end
 
     test "then a :timeout_requested event should be stored", state do

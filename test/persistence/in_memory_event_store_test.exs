@@ -1,3 +1,3 @@
 defmodule InMemoryEventStoreTest do
-  use Eventize.EventStoreTests, Eventize.Persistence.InMemoryEventStore
+  use Eventize.EventStore.EventStoreTestCase, event_store: Eventize.Persistence.InMemoryEventStore
 end

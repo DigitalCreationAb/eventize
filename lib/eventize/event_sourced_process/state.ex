@@ -8,7 +8,7 @@ defmodule Eventize.EventSourcedProcessState do
           state: term(),
           event_bus: Eventize.Persistence.EventStore.event_bus(),
           id: String.t(),
-          version: non_neg_integer(),
+          version: :empty | non_neg_integer(),
           process: atom()
         }
 

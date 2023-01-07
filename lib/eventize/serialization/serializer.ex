@@ -3,8 +3,8 @@ defmodule Eventize.Serialization.Serializer do
   Behaviour that specifies how events and snapshots can be serialized and deserialized.
   """
 
-  @callback serialize(input :: map()) :: {:ok, String.t()} | {:error, term()}
+  @callback serialize(input :: map()) :: {:ok, binary()} | {:error, term()}
 
-  @callback deserialize(input :: String.t(), type :: atom | nil) ::
+  @callback deserialize(input :: binary(), type :: atom | nil) ::
               {:ok, term()} | {:error, term()}
 end

@@ -105,7 +105,6 @@ defmodule Eventize.EventSourcedProcess.Cleanup do
   def run_cleanup({:take_snapshot, {snapshot, version}}, current_return, _process_state) do
     take_snapshot = fn %EventSourcedProcessState{
                          event_bus: event_bus,
-                         version: current_version,
                          stream_name: stream_name,
                          process: process
                        } = process_state ->
@@ -113,8 +112,7 @@ defmodule Eventize.EventSourcedProcess.Cleanup do
         event_bus.append_snapshot.(
           stream_name,
           {snapshot, process.get_snapshot_meta_data(snapshot)},
-          version,
-          current_version
+          version
         )
 
       {new_state, new_behavior} = process.run_snapshot_handler(stored_snapshot, process_state)

@@ -4,7 +4,7 @@ defmodule Eventize.MixProject do
   def project do
     [
       app: :eventize,
-      version: "0.1.1",
+      version: "0.1.0",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
