@@ -1,21 +1,12 @@
 # Eventize
 
-**TODO: Add description**
+Eventize can be used to create persistent processes using event sourcing.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `eventize` to your list of dependencies in `mix.exs`:
+Eventize can be installed using [Hex](https://hex.pm/packages/eventize).
 
-```elixir
-def deps do
-  [
-    {:eventize, "~> 0.1.0"}
-  ]
-end
-```
+## Documentation
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/eventize](https://hexdocs.pm/eventize).
+Documentation can be found [here](https://hexdocs.pm/eventize).
 

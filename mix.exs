@@ -1,22 +1,26 @@
 defmodule Eventize.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       app: :eventize,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       description: description(),
-      package: package()
+      package: package(),
+      docs: docs(),
+      source_url: "https://github.com/DigitalCreationAb/eventize"
     ]
   end
 
   defp description do
     """
-
+    Eventize can be used to create persistent processes using EventSourcing.
     """
   end
 
@@ -26,6 +30,14 @@ defmodule Eventize.MixProject do
       maintainers: ["Mattias Jakobsson"],
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/DigitalCreationAb/eventize"}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "Eventize",
+      canonical: "http://hexdocs.pm/eventize",
+      source_ref: "v#{@version}"
     ]
   end
 
@@ -50,7 +62,7 @@ defmodule Eventize.MixProject do
   defp deps do
     [
       {:jason, "~> 1.3"},
-      {:elixir_uuid, "~> 1.2", only: :test, runtime: false},
+      {:elixir_uuid, "~> 1.2"},
       {:ex_doc, "~> 0.29.0", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev], runtime: false}

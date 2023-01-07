@@ -1,4 +1,4 @@
-name: Package application
+name: Publish package
 
 on:
   push:
@@ -16,5 +16,5 @@ jobs:
         with:
           otp-version: '24'
           elixir-version: '1.12.2'
-      - name: Test
-        run: make build test docs
+      - name: Test and publish
+        run: make HEX_API_KEY=${{ secrets.HEX_API_KEY }} test publish
