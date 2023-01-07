@@ -1,7 +1,7 @@
 defmodule Eventize.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
+  @version "0.1.2"
 
   def project do
     [
@@ -34,7 +34,9 @@ defmodule Eventize.MixProject do
   end
 
   defp docs do
-    []
+    [
+      source_ref: "v#{@version}"
+    ]
   end
 
   # Run "mix help compile.app" to learn about applications.
