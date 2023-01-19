@@ -68,7 +68,7 @@ defmodule Eventize.Persistence.EventStore do
   @typedoc """
   Represents the response that a caller will receive when reading or appending events.
   """
-  @type events_response :: {:ok, list(EventData)} | {:error, term()}
+  @type events_response :: {:ok, list(EventData), :empty | non_neg_integer()} | {:error, term()}
 
   @typedoc """
   Represents the response that a caller will receive when reading or appending a snapshot.

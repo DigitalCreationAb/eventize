@@ -9,8 +9,19 @@ defmodule Eventize.EventSourcedProcessState do
           event_bus: Eventize.Persistence.EventStore.event_bus(),
           id: String.t(),
           version: :empty | non_neg_integer(),
-          process: atom()
+          stream_name: String.t(),
+          process: atom(),
+          start_from: :start | non_neg_integer()
         }
 
-  defstruct [:behavior, :state, :event_bus, :id, :version, :stream_name, :process]
+  defstruct [
+    :behavior,
+    :state,
+    :event_bus,
+    :id,
+    :version,
+    :stream_name,
+    :process,
+    start_from: :start
+  ]
 end

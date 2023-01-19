@@ -33,7 +33,7 @@ defmodule EventSourcedProcess.TimeoutCleanupTest do
     end
 
     test "then process should be stopped after timeout", state do
-      Process.sleep(1)
+      Process.sleep(10)
 
       assert Process.info(state.pid) == nil
     end

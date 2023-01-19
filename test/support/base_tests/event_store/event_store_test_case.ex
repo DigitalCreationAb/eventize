@@ -122,20 +122,20 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then one event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 1
       end
 
       test "then event should have correct title", state do
-        {:ok, [%EventData{payload: {:title_updated, first}}]} =
+        {:ok, [%EventData{payload: {:title_updated, first}}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert first.title == "title"
       end
 
       test "then event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}]} =
+        {:ok, [%EventData{sequence_number: sequence_number}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 0
@@ -155,34 +155,34 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then two event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 2
       end
 
       test "then first event should have correct title", state do
-        {:ok, [%EventData{payload: {:title_updated, first}}, _]} =
+        {:ok, [%EventData{payload: {:title_updated, first}}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert first.title == "title1"
       end
 
       test "then second event should have correct title", state do
-        {:ok, [_, %EventData{payload: {:title_updated, second}}]} =
+        {:ok, [_, %EventData{payload: {:title_updated, second}}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert second.title == "title2"
       end
 
       test "then first event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}, _]} =
+        {:ok, [%EventData{sequence_number: sequence_number}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 0
       end
 
       test "then second event should have correct sequence number", state do
-        {:ok, [_, %EventData{sequence_number: sequence_number}]} =
+        {:ok, [_, %EventData{sequence_number: sequence_number}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 1
@@ -205,34 +205,34 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then two event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 2
       end
 
       test "then first event should have correct title", state do
-        {:ok, [%EventData{payload: {:title_updated, first}}, _]} =
+        {:ok, [%EventData{payload: {:title_updated, first}}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert first.title == "title1"
       end
 
       test "then second event should have correct title", state do
-        {:ok, [_, %EventData{payload: {:title_updated, second}}]} =
+        {:ok, [_, %EventData{payload: {:title_updated, second}}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert second.title == "title2"
       end
 
       test "then first event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}, _]} =
+        {:ok, [%EventData{sequence_number: sequence_number}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 0
       end
 
       test "then second event should have correct sequence number", state do
-        {:ok, [_, %EventData{sequence_number: sequence_number}]} =
+        {:ok, [_, %EventData{sequence_number: sequence_number}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 1
@@ -249,20 +249,20 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then one event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 1
       end
 
       test "then event should have correct title", state do
-        {:ok, [%EventData{payload: %TestEvent{} = first}]} =
+        {:ok, [%EventData{payload: %TestEvent{} = first}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert first.title == "title"
       end
 
       test "then event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}]} =
+        {:ok, [%EventData{sequence_number: sequence_number}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 0
@@ -282,34 +282,34 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then two event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 2
       end
 
       test "then first event should have correct title", state do
-        {:ok, [%EventData{payload: %TestEvent{} = first}, _]} =
+        {:ok, [%EventData{payload: %TestEvent{} = first}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert first.title == "title1"
       end
 
       test "then second event should have correct title", state do
-        {:ok, [_, %EventData{payload: %TestEvent{} = second}]} =
+        {:ok, [_, %EventData{payload: %TestEvent{} = second}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert second.title == "title2"
       end
 
       test "then first event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}, _]} =
+        {:ok, [%EventData{sequence_number: sequence_number}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 0
       end
 
       test "then second event should have correct sequence number", state do
-        {:ok, [_, %EventData{sequence_number: sequence_number}]} =
+        {:ok, [_, %EventData{sequence_number: sequence_number}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 1
@@ -332,34 +332,34 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then two event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 2
       end
 
       test "then first event should have correct title", state do
-        {:ok, [%EventData{payload: %TestEvent{} = first}, _]} =
+        {:ok, [%EventData{payload: %TestEvent{} = first}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert first.title == "title1"
       end
 
       test "then second event should have correct title", state do
-        {:ok, [_, %EventData{payload: %TestEvent{} = second}]} =
+        {:ok, [_, %EventData{payload: %TestEvent{} = second}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert second.title == "title2"
       end
 
       test "then first event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}, _]} =
+        {:ok, [%EventData{sequence_number: sequence_number}, _], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 0
       end
 
       test "then second event should have correct sequence number", state do
-        {:ok, [_, %EventData{sequence_number: sequence_number}]} =
+        {:ok, [_, %EventData{sequence_number: sequence_number}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 1
@@ -391,13 +391,13 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then one event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 1
       end
 
       test "then first response is ok", state do
-        assert {:ok, _} = state.first_response
+        assert {:ok, _, _} = state.first_response
       end
 
       test "then second response is error", state do
@@ -432,17 +432,17 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then two event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 2
       end
 
       test "then first response is ok", state do
-        assert {:ok, _} = state.first_response
+        assert {:ok, _, _} = state.first_response
       end
 
       test "then second response is ok", state do
-        assert {:ok, _} = state.second_response
+        assert {:ok, _, _} = state.second_response
       end
     end
 
@@ -468,19 +468,19 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then one event is loaded", state do
-        {:ok, events} = state.response
+        {:ok, events, _} = state.response
 
         assert length(events) == 1
       end
 
       test "then event should have correct title", state do
-        {:ok, [%EventData{payload: {:title_updated, first}}]} = state.response
+        {:ok, [%EventData{payload: {:title_updated, first}}], _} = state.response
 
         assert first.title == "title1"
       end
 
       test "then event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}]} = state.response
+        {:ok, [%EventData{sequence_number: sequence_number}], _} = state.response
 
         assert sequence_number == 0
       end
@@ -508,19 +508,19 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then one event is loaded", state do
-        {:ok, events} = state.response
+        {:ok, events, _} = state.response
 
         assert length(events) == 1
       end
 
       test "then event should have correct title", state do
-        {:ok, [%EventData{payload: {:title_updated, first}}]} = state.response
+        {:ok, [%EventData{payload: {:title_updated, first}}], _} = state.response
 
         assert first.title == "title2"
       end
 
       test "then event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}]} = state.response
+        {:ok, [%EventData{sequence_number: sequence_number}], _} = state.response
 
         assert sequence_number == 1
       end
@@ -552,20 +552,20 @@ defmodule Eventize.EventStore.EventStoreTestCase do
       end
 
       test "then one event can be loaded", state do
-        {:ok, events} = EventStoreTestEventBus.load_events(state.stream_name)
+        {:ok, events, _} = EventStoreTestEventBus.load_events(state.stream_name)
 
         assert length(events) == 1
       end
 
       test "then event should have correct title", state do
-        {:ok, [%EventData{payload: {:title_updated, first}}]} =
+        {:ok, [%EventData{payload: {:title_updated, first}}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert first.title == "title2"
       end
 
       test "then event should have correct sequence number", state do
-        {:ok, [%EventData{sequence_number: sequence_number}]} =
+        {:ok, [%EventData{sequence_number: sequence_number}], _} =
           EventStoreTestEventBus.load_events(state.stream_name)
 
         assert sequence_number == 1

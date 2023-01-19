@@ -11,23 +11,23 @@ defmodule Eventize.DeleteEventsCleanupTestProcess do
     )
   end
 
-  @impl Eventize.EventSourcedProcess
+  @impl true
   def execute_call({:delete_events, to}, _from, _context) do
     {[{:delete_requested, to}], :ok}
   end
 
-  @impl Eventize.EventSourcedProcess
+  @impl true
   def execute_call(:ping, _from, _context) do
     :pong
   end
 
-  @impl Eventize.EventSourcedProcess
+  @impl true
   def execute_cast({:delete_events, to}, _context) do
     [{:delete_requested, to}]
   end
 
-  @impl Eventize.EventSourcedProcess.Cleanup
-  def cleanup({:delete_requested, to}, _state) do
+  @impl true
+  def cleanup({:delete_requested, to}, _context) do
     {:delete_events, to}
   end
 end

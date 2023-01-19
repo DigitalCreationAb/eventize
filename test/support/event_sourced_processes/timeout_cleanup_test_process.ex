@@ -11,13 +11,13 @@ defmodule Eventize.TimeoutCleanupTestProcess do
     )
   end
 
-  @impl Eventize.EventSourcedProcess
+  @impl true
   def execute_call({:timeout, timeout}, _from, _context) do
     {[{:timeout_requested, %{seconds: timeout}}], :ok}
   end
 
-  @impl Eventize.EventSourcedProcess.Cleanup
-  def cleanup({:timeout_requested, %{seconds: timeout}}, _state) do
+  @impl true
+  def cleanup({:timeout_requested, %{seconds: timeout}}, _context) do
     {:timeout, timeout}
   end
 end

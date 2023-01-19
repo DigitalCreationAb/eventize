@@ -11,17 +11,17 @@ defmodule Eventize.ContinuationCleanupTestProcess do
     )
   end
 
-  @impl Eventize.EventSourcedProcess
+  @impl true
   def execute_call({:set_state_in_continuation, %{} = state}, _from, _context) do
     {[{:continuation_requested, state}], :ok}
   end
 
-  @impl Eventize.EventSourcedProcess
+  @impl true
   def execute_call(:ping, _from, _context) do
     :pong
   end
 
-  @impl Eventize.EventSourcedProcess
+  @impl true
   def execute_cast({:set_state_in_continuation, %{} = state}, _context) do
     [{:continuation_requested, state}]
   end
@@ -30,8 +30,8 @@ defmodule Eventize.ContinuationCleanupTestProcess do
     {:noreply, %{entity_state | state: requested_state}}
   end
 
-  @impl Eventize.EventSourcedProcess.Cleanup
-  def cleanup({:continuation_requested, requested_state}, _state) do
+  @impl true
+  def cleanup({:continuation_requested, requested_state}, _context) do
     {:continue, {:set_state, requested_state}}
   end
 end

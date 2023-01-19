@@ -4,36 +4,38 @@ defmodule Eventize.Persistence.InMemoryEventStore do
   process used to store events for `EventizeEntity`
   instances in memory.
   """
+
   alias Eventize.Persistence.EventStore.SnapshotData
 
   use Eventize.Persistence.EventStore
 
   defmodule State do
-    @moduledoc """
-    State is a struct that keeps all stored events in their streams.
-    """
+    @moduledoc false
 
-    @type t :: %__MODULE__{streams: map(), snapshots: map(), serializer: atom}
+    @type t :: %__MODULE__{streams: map(), serializer: atom}
 
     defstruct streams: %{},
-              snapshots: %{},
               serializer: Eventize.Serialization.JasonSerializer
   end
 
-  defmodule StoredEvent do
-    @moduledoc """
-    Represents a stored event.
-    """
+  defmodule StreamData do
+    @moduledoc false
 
-    defstruct [:type, :payload, :meta_data, :sequence_number]
+    @type t :: %__MODULE__{
+            events: list(),
+            snapshots: list(),
+            sequence_number: :empty | non_neg_integer()
+          }
+
+    defstruct events: [],
+              snapshots: [],
+              sequence_number: :empty
   end
 
-  defmodule StoredSnapshot do
-    @moduledoc """
-    Represents a stored snapshot.
-    """
+  defmodule StoredEvent do
+    @moduledoc false
 
-    defstruct [:type, :payload, :meta_data, :version]
+    defstruct [:type, :payload, :meta_data, :sequence_number]
   end
 
   @spec start_link(keyword) :: :ignore | {:error, any} | {:ok, pid}
@@ -53,11 +55,11 @@ defmodule Eventize.Persistence.InMemoryEventStore do
   Initializes a InMemoryEventStore with a optional serializer.
   """
   def init(%{serializer: serializer}) do
-    {:ok, %State{streams: %{}, snapshots: %{}, serializer: serializer}}
+    {:ok, %State{serializer: serializer}}
   end
 
   def init(_) do
-    {:ok, %State{streams: %{}, snapshots: %{}}}
+    {:ok, %State{}}
   end
 
   def load_events(
@@ -69,15 +71,15 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _from,
         %State{streams: streams, serializer: serializer} = state
       ) do
-    events =
+    %StreamData{events: events, sequence_number: sequence_number} =
       case Map.get(streams, stream_name) do
-        nil -> []
-        e -> e
+        nil -> %StreamData{}
+        s -> s
       end
 
     deserialized_events =
       events
-      |> Enum.map(fn event -> deserialize(event, serializer) end)
+      |> Enum.map(fn event -> deserialize(event, serializer, :event) end)
       |> Enum.reverse()
       |> Enum.filter(fn event ->
         case start do
@@ -92,7 +94,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         count -> deserialized_events |> Enum.slice(0, count)
       end
 
-    {:reply, {:ok, deserialized_events}, state}
+    {:reply, {:ok, deserialized_events, sequence_number}, state}
   end
 
   def append_events(
@@ -100,17 +102,13 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _from,
         %State{streams: streams, serializer: serializer} = state
       ) do
-    current_events =
+    stream =
       case Map.get(streams, stream_name) do
-        nil -> []
-        events -> events
+        nil -> %StreamData{}
+        s -> s
       end
 
-    latest_sequence_number =
-      case current_events do
-        [%StoredEvent{sequence_number: sequence_number} | _tail] -> sequence_number
-        _ -> :empty
-      end
+    %StreamData{events: current_events, sequence_number: latest_sequence_number} = stream
 
     case check_expected_version(latest_sequence_number, expected_version) do
       :ok ->
@@ -122,18 +120,32 @@ defmodule Eventize.Persistence.InMemoryEventStore do
               i -> i + 1
             end
           )
-          |> Enum.map(fn {event, seq} -> serialize(event, seq, serializer, :event) end)
+          |> Enum.map(fn {event, seq} -> serialize(event, seq, serializer) end)
 
         new_events = prepend(current_events, serialized_events)
 
+        new_sequence_number =
+          new_events
+          |> Enum.reverse()
+          |> Enum.reduce(latest_sequence_number, fn %StoredEvent{sequence_number: sequence_number},
+                                                    _ ->
+            sequence_number
+          end)
+
         new_state = %State{
           state
-          | streams: Map.put(streams, stream_name, new_events)
+          | streams:
+              Map.put(streams, stream_name, %StreamData{
+                stream
+                | events: new_events,
+                  sequence_number: new_sequence_number
+              })
         }
 
         {:reply,
-         {:ok, serialized_events |> Enum.map(fn event -> deserialize(event, serializer) end)},
-         new_state}
+         {:ok,
+          serialized_events |> Enum.map(fn event -> deserialize(event, serializer, :event) end),
+          new_sequence_number}, new_state}
 
       err ->
         {:reply, err, state}
@@ -145,17 +157,23 @@ defmodule Eventize.Persistence.InMemoryEventStore do
         _from,
         %State{streams: streams} = state
       ) do
-    new_events =
+    stream =
       case Map.get(streams, stream_name) do
-        nil ->
-          []
-
-        events ->
-          events
-          |> Enum.filter(fn event -> !should_remove(event, version) end)
+        nil -> %StreamData{}
+        s -> s
       end
 
-    {:reply, :ok, %State{state | streams: Map.put(streams, stream_name, new_events)}}
+    %StreamData{events: events} = stream
+
+    new_events =
+      events
+      |> Enum.filter(fn event -> !should_remove(event, version) end)
+
+    {:reply, :ok,
+     %State{
+       state
+       | streams: Map.put(streams, stream_name, %StreamData{stream | events: new_events})
+     }}
   end
 
   def load_snapshot(
@@ -164,20 +182,25 @@ defmodule Eventize.Persistence.InMemoryEventStore do
           max_version: max_version
         },
         _from,
-        %State{snapshots: snapshots_data, serializer: serializer} = state
+        %State{streams: streams, serializer: serializer} = state
       ) do
-    snapshots =
-      case Map.get(snapshots_data, stream_name) do
-        nil -> []
-        ss -> ss
+    stream =
+      case Map.get(streams, stream_name) do
+        nil -> %StreamData{}
+        s -> s
       end
+
+    %StreamData{snapshots: snapshots} = stream
+
+    snapshots =
+      snapshots
       |> Enum.filter(fn snapshot ->
-        snapshot.version <= max_version
+        snapshot.sequence_number <= max_version
       end)
       |> Enum.take(1)
 
     case snapshots do
-      [snapshot | _] -> {:reply, {:ok, deserialize(snapshot, serializer)}, state}
+      [snapshot | _] -> {:reply, {:ok, deserialize(snapshot, serializer, :snapshot)}, state}
       _ -> {:reply, {:ok, nil}, state}
     end
   end
@@ -189,52 +212,50 @@ defmodule Eventize.Persistence.InMemoryEventStore do
           version: version
         },
         _from,
-        %State{snapshots: snapshots, serializer: serializer} = state
+        %State{streams: streams, serializer: serializer} = state
       ) do
-    current_snapshots =
-      case Map.get(snapshots, stream_name) do
-        nil -> []
+    stream =
+      case Map.get(streams, stream_name) do
+        nil -> %StreamData{}
         s -> s
       end
 
-    serialized_snapshot = serialize(snapshot, version, serializer, :snapshot)
+    %StreamData{snapshots: current_snapshots} = stream
+
+    serialized_snapshot = serialize(snapshot, version, serializer)
 
     new_snapshots = [serialized_snapshot | current_snapshots]
 
     new_state = %State{
       state
-      | snapshots: Map.put(snapshots, stream_name, new_snapshots)
+      | streams: Map.put(streams, stream_name, %StreamData{stream | snapshots: new_snapshots})
     }
 
-    {:reply, {:ok, deserialize(serialized_snapshot, serializer)}, new_state}
+    {:reply, {:ok, deserialize(serialized_snapshot, serializer, :snapshot)}, new_state}
   end
 
   def delete_snapshots(
         %{stream_name: stream_name, version: version},
         _from,
-        %State{snapshots: snapshots} = state
+        %State{streams: streams} = state
       ) do
-    new_snapshots =
-      case Map.get(snapshots, stream_name) do
-        nil ->
-          []
-
-        items ->
-          items
-          |> Enum.filter(fn snapshot -> !should_remove(snapshot, version) end)
+    stream =
+      case Map.get(streams, stream_name) do
+        nil -> %StreamData{}
+        s -> s
       end
 
-    {:reply, :ok, %State{state | snapshots: Map.put(snapshots, stream_name, new_snapshots)}}
-  end
+    %StreamData{snapshots: snapshots} = stream
 
-  defp should_remove(%StoredSnapshot{version: snapshot_version}, new_version) do
-    case new_version do
-      :all ->
-        true
+    new_snapshots =
+      snapshots
+      |> Enum.filter(fn snapshot -> !should_remove(snapshot, version) end)
 
-      version ->
-        snapshot_version <= version
-    end
+    {:reply, :ok,
+     %State{
+       state
+       | streams: Map.put(streams, stream_name, %StreamData{stream | snapshots: new_snapshots})
+     }}
   end
 
   defp should_remove(%StoredEvent{sequence_number: event_sequence_number}, new_version) do
@@ -265,7 +286,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
   defp prepend(list, []), do: list
   defp prepend(list, [item | remainder]), do: prepend([item | list], remainder)
 
-  defp serialize({{type, payload}, meta_data}, sequence_number, serializer, :event)
+  defp serialize({{type, payload}, meta_data}, sequence_number, serializer)
        when is_atom(type) do
     with {:ok, serialized_payload} <- serializer.serialize(payload),
          {:ok, serialized_meta_data} <- serializer.serialize(meta_data) do
@@ -278,7 +299,7 @@ defmodule Eventize.Persistence.InMemoryEventStore do
     end
   end
 
-  defp serialize({event, meta_data}, sequence_number, serializer, :event) when is_struct(event) do
+  defp serialize({event, meta_data}, sequence_number, serializer) when is_struct(event) do
     with {:ok, serialized_payload} <- serializer.serialize(event),
          {:ok, serialized_meta_data} <- serializer.serialize(meta_data) do
       %StoredEvent{
@@ -290,32 +311,6 @@ defmodule Eventize.Persistence.InMemoryEventStore do
     end
   end
 
-  defp serialize({{type, payload}, meta_data}, version, serializer, :snapshot)
-       when is_atom(type) do
-    with {:ok, serialized_payload} <- serializer.serialize(payload),
-         {:ok, serialized_meta_data} <- serializer.serialize(meta_data) do
-      %StoredSnapshot{
-        type: nil,
-        payload: {type, serialized_payload},
-        version: version,
-        meta_data: serialized_meta_data
-      }
-    end
-  end
-
-  defp serialize({snapshot, meta_data}, version, serializer, :snapshot)
-       when is_struct(snapshot) do
-    with {:ok, serialized_payload} <- serializer.serialize(snapshot),
-         {:ok, serialized_meta_data} <- serializer.serialize(meta_data) do
-      %StoredSnapshot{
-        type: snapshot.__struct__,
-        payload: serialized_payload,
-        version: version,
-        meta_data: serialized_meta_data
-      }
-    end
-  end
-
   defp deserialize(
          %StoredEvent{
            type: nil,
@@ -323,7 +318,8 @@ defmodule Eventize.Persistence.InMemoryEventStore do
            meta_data: meta_data,
            sequence_number: sequence_number
          },
-         serializer
+         serializer,
+         :event
        ) do
     with {:ok, deserialized_payload} <- serializer.deserialize(payload),
          {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
@@ -342,7 +338,8 @@ defmodule Eventize.Persistence.InMemoryEventStore do
            meta_data: meta_data,
            sequence_number: sequence_number
          },
-         serializer
+         serializer,
+         :event
        ) do
     with {:ok, deserialized_payload} <- serializer.deserialize(payload, type),
          {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
@@ -355,39 +352,41 @@ defmodule Eventize.Persistence.InMemoryEventStore do
   end
 
   defp deserialize(
-         %StoredSnapshot{
+         %StoredEvent{
            type: nil,
            payload: {type, payload},
            meta_data: meta_data,
-           version: version
+           sequence_number: sequence_number
          },
-         serializer
+         serializer,
+         :snapshot
        ) do
     with {:ok, deserialized_payload} <- serializer.deserialize(payload),
          {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
       %SnapshotData{
         payload: {type, deserialized_payload},
         meta_data: deserialized_meta_data,
-        version: version
+        version: sequence_number
       }
     end
   end
 
   defp deserialize(
-         %StoredSnapshot{
+         %StoredEvent{
            type: type,
            payload: payload,
            meta_data: meta_data,
-           version: version
+           sequence_number: sequence_number
          },
-         serializer
+         serializer,
+         :snapshot
        ) do
     with {:ok, deserialized_payload} <- serializer.deserialize(payload, type),
          {:ok, deserialized_meta_data} <- serializer.deserialize(meta_data) do
       %SnapshotData{
         payload: deserialized_payload,
         meta_data: deserialized_meta_data,
-        version: version
+        version: sequence_number
       }
     end
   end

@@ -14,7 +14,7 @@ defmodule Eventize.Persistence.NilEventBus do
   @spec get :: EventStore.event_bus()
   def get() do
     %{
-      load_events: fn _, _, _ -> {:ok, []} end,
+      load_events: fn _, _, _ -> {:ok, [], :empty} end,
       append_events: fn _, events, _ ->
         {:ok,
          events
@@ -24,7 +24,7 @@ defmodule Eventize.Persistence.NilEventBus do
              meta_data: meta_data,
              sequence_number: 0
            }
-         end)}
+         end), :empty}
       end,
       delete_events: fn _, _ -> :ok end,
       load_snapshot: fn _, _ -> {:ok, nil} end,

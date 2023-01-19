@@ -65,11 +65,11 @@ defmodule Eventize.BehaviorTestProcess do
   end
 
   @impl true
-  def apply_event({:seconday_behavior_entered, %{}}, state) do
+  def apply_event({:seconday_behavior_entered, %{}}, %EventContext{state: state}) do
     {state, SecondaryBehavior}
   end
 
-  def apply_event({:initial_behavior_entered, %{}}, state) do
+  def apply_event({:initial_behavior_entered, %{}}, %EventContext{state: state}) do
     {state, InitialBehavior}
   end
 end

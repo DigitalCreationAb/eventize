@@ -12,7 +12,11 @@ defmodule EventSourcedProcess.CorrelationTest do
       response =
         GenServer.call(
           pid,
-          {{:test, %{}}, %{correlation_id: correlation_id, message_id: message_id}}
+          {{:test, %{}},
+           %Eventize.EventSourcedProcess.MessageMetaData{
+             correlation_id: correlation_id,
+             message_id: message_id
+           }}
         )
 
       {:ok,
@@ -75,7 +79,8 @@ defmodule EventSourcedProcess.CorrelationTest do
       response =
         GenServer.call(
           pid,
-          {{:test, %{}}, %{correlation_id: correlation_id}}
+          {{:test, %{}},
+           %Eventize.EventSourcedProcess.MessageMetaData{correlation_id: correlation_id}}
         )
 
       {:ok, pid: pid, id: id, response: response, correlation_id: correlation_id}
@@ -101,7 +106,7 @@ defmodule EventSourcedProcess.CorrelationTest do
       response =
         GenServer.call(
           pid,
-          {{:test, %{}}, %{message_id: message_id}}
+          {{:test, %{}}, %Eventize.EventSourcedProcess.MessageMetaData{message_id: message_id}}
         )
 
       {:ok, pid: pid, id: id, response: response, message_id: message_id}
@@ -127,7 +132,11 @@ defmodule EventSourcedProcess.CorrelationTest do
 
       GenServer.cast(
         pid,
-        {{:test, %{}}, %{correlation_id: correlation_id, message_id: message_id}}
+        {{:test, %{}},
+         %Eventize.EventSourcedProcess.MessageMetaData{
+           correlation_id: correlation_id,
+           message_id: message_id
+         }}
       )
 
       :pong = GenServer.call(pid, :ping)
@@ -179,7 +188,8 @@ defmodule EventSourcedProcess.CorrelationTest do
 
       GenServer.cast(
         pid,
-        {{:test, %{}}, %{correlation_id: correlation_id}}
+        {{:test, %{}},
+         %Eventize.EventSourcedProcess.MessageMetaData{correlation_id: correlation_id}}
       )
 
       :pong = GenServer.call(pid, :ping)
@@ -206,7 +216,7 @@ defmodule EventSourcedProcess.CorrelationTest do
 
       GenServer.cast(
         pid,
-        {{:test, %{}}, %{message_id: message_id}}
+        {{:test, %{}}, %Eventize.EventSourcedProcess.MessageMetaData{message_id: message_id}}
       )
 
       :pong = GenServer.call(pid, :ping)

@@ -106,7 +106,7 @@ defmodule Eventize.Test.EventSourcedProcessTests do
       end
 
       defp get_process(id, initial_events) when is_list(initial_events) do
-        {:ok, _} =
+        {:ok, _, _} =
           EventStoreTestEventBus.append_events(
             @event_store_name,
             get_stream_name(id),
@@ -139,7 +139,7 @@ defmodule Eventize.Test.EventSourcedProcessTests do
       defoverridable get_stream_name: 1
 
       defp get_events(id, from \\ :start) do
-        {:ok, events} =
+        {:ok, events, _} =
           EventStoreTestEventBus.load_events(@event_store_name, get_stream_name(id), from)
 
         events
