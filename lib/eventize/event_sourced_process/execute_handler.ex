@@ -7,13 +7,10 @@ defmodule Eventize.EventSourcedProcess.ExecuteHandler do
 
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
 
-  @callback execute_call(term(), pid(), map()) :: {list(), term()} | list() | term()
-
-  @callback execute_cast(term(), map()) :: list() | nil
-
-  @optional_callbacks execute_call: 3,
-                      execute_cast: 2
-
+  @spec execute(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def execute(
         %ExecutionContext{
           input: input,

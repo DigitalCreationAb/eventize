@@ -5,6 +5,10 @@ defmodule Eventize.EventSourcedProcess.EnrichEventsWithMetaData do
 
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
 
+  @spec execute(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def execute(
         %ExecutionContext{
           state: %Eventize.EventSourcedProcessState{process: process},

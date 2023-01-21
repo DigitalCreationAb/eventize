@@ -1,8 +1,15 @@
 defmodule Eventize.EventSourcedProcess.ApplyEvents do
-  @moduledoc false
+  @moduledoc """
+  A pipeline step that is used to apply events to a
+  `Eventize.EventSourcedProcess` both at startup
+  and after a message has been executed.
+  """
 
   defmodule EventContext do
-    @moduledoc false
+    @moduledoc """
+    A context containing useful data to apply a event
+    to a `Eventize.EventSourcedProcess`.
+    """
 
     @type t :: %__MODULE__{
             state: term(),
@@ -10,27 +17,24 @@ defmodule Eventize.EventSourcedProcess.ApplyEvents do
             sequence_number: non_neg_integer()
           }
 
+    @enforce_keys [:state, :meta_data, :sequence_number]
+
     defstruct [:state, :meta_data, :sequence_number]
   end
 
   alias Eventize.EventSourcedProcess.ExecutionPipeline.ExecutionContext
+  alias Eventize.EventSourcedProcess.InitPipeline.ExecutionContext, as: InitExecutionContext
   alias Eventize.Persistence.EventStore.EventData
 
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
   @behaviour Eventize.EventSourcedProcess.InitPipeline.PipelineStep
 
-  @callback apply_event(term(), term(), map()) :: {term(), atom()} | term()
-
-  @callback apply_event(term(), term()) :: {term(), atom()} | term()
-
-  @callback get_event_meta_data(term()) :: map()
-
-  @optional_callbacks apply_event: 3,
-                      apply_event: 2,
-                      get_event_meta_data: 1
-
+  @spec init(
+          InitExecutionContext.t(),
+          Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
+        ) :: InitExecutionContext.t()
   def init(
-        %Eventize.EventSourcedProcess.InitPipeline.ExecutionContext{
+        %InitExecutionContext{
           state:
             %Eventize.EventSourcedProcessState{
               process: process,
@@ -45,7 +49,7 @@ defmodule Eventize.EventSourcedProcess.ApplyEvents do
       ) do
     {new_state, new_behavior} = run(events, state, current_behavior, process)
 
-    next.(%Eventize.EventSourcedProcess.InitPipeline.ExecutionContext{
+    next.(%InitExecutionContext{
       context
       | state: %Eventize.EventSourcedProcessState{
           process_state
@@ -55,6 +59,10 @@ defmodule Eventize.EventSourcedProcess.ApplyEvents do
     })
   end
 
+  @spec execute(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def execute(
         %ExecutionContext{
           state:

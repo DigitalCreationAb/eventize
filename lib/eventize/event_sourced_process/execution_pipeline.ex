@@ -1,10 +1,16 @@
 defmodule Eventize.EventSourcedProcess.ExecutionPipeline do
-  @moduledoc false
-  use Eventize.ExecutionPipelines.Pipeline,
+  @moduledoc """
+  The `Eventize.ExecutionPipeline` used to execute incoming
+  messages to a process.
+  """
+
+  use Eventize.ExecutionPipeline,
     context: Eventize.EventSourcedProcess.ExecutionPipeline.ExecutionContext
 
   defmodule ExecutionContext do
-    @moduledoc false
+    @moduledoc """
+    The context used to execute a incoming message to a process.
+    """
 
     @type t :: %__MODULE__{
             input: term(),
@@ -14,6 +20,8 @@ defmodule Eventize.EventSourcedProcess.ExecutionPipeline do
             type: :cast | :call,
             from: pid() | nil
           }
+
+    @enforce_keys [:input, :build_response, :state, :type]
 
     defstruct [:input, :build_response, :state, :type, step_data: %{}, from: nil]
   end

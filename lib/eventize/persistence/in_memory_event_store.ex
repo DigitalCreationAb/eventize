@@ -1,7 +1,7 @@
 defmodule Eventize.Persistence.InMemoryEventStore do
   @moduledoc """
   InMemoryEventStore is a `Eventize.Persistence.EventStore`
-  process used to store events for `EventizeEntity`
+  process used to store events for `Eventize.EventSourcedProcess`
   instances in memory.
   """
 
@@ -10,7 +10,9 @@ defmodule Eventize.Persistence.InMemoryEventStore do
   use Eventize.Persistence.EventStore
 
   defmodule State do
-    @moduledoc false
+    @moduledoc """
+    The internal state used to store events and snapshots.
+    """
 
     @type t :: %__MODULE__{streams: map(), serializer: atom}
 
@@ -34,6 +36,15 @@ defmodule Eventize.Persistence.InMemoryEventStore do
 
   defmodule StoredEvent do
     @moduledoc false
+
+    @type t :: %__MODULE__{
+            type: atom() | String.t(),
+            payload: term(),
+            meta_data: map(),
+            sequence_number: non_neg_integer()
+          }
+
+    @enforce_keys [:type, :payload, :meta_data, :sequence_number]
 
     defstruct [:type, :payload, :meta_data, :sequence_number]
   end

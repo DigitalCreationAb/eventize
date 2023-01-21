@@ -4,18 +4,18 @@ defmodule Eventize.EventSourcedProcess do
   use event sourcing to store its state as a sequence of events.
 
   Instead of using the normal `c:GenServer.handle_call/3` and `c:GenServer.handle_cast/2`
-  callbacks you can now use `c:Eventize.EventSourcedProcess.ExecuteHandler.execute_call/3`
-  and `c:Eventize.EventSourcedProcess.ExecuteHandler.execute_cast/2`.
+  callbacks you can now use `c:Eventize.EventSourcedProcess.ProcessBehavior.execute_call/3`
+  and `c:Eventize.EventSourcedProcess.ProcessBehavior.execute_cast/2`.
   These function very similar, but instead of modifying the state
   you can return a list of events that should be applied. These
   events will be stored using the configured event bus and then
-  applied to the process using the `c:Eventize.EventSourcedProcess.ApplyEvents.apply_event/2`
-  or `c:Eventize.EventSourcedProcess.ApplyEvents.apply_event/3` callback.
+  applied to the process using the `c:apply_event/2` callback.
   All stored events will also be read on startup and the
-  `c:Eventize.EventSourcedProcess.ApplyEvents.apply_event/3`
-  functions will be called then as well to make sure that the state
-  is up to date.
+  `c:apply_event/2` functions will be called then as well to
+  make sure that the state is up to date.
   """
+
+  alias Eventize.EventSourcedProcess.ApplyEvents.EventContext
 
   @doc """
   A callback used when the process is starting up. This should
@@ -36,6 +36,47 @@ defmodule Eventize.EventSourcedProcess do
   """
   @callback get_stream_name(String.t()) :: String.t()
 
+  @doc """
+  This callback is used to updated the state of the process
+  after a event has been saved to the `Eventize.Persistence.EventStore`.
+
+  You can either return just the new state or a tuple with the new
+  state and a reference to a module that will be the new process
+  behavior for the next incoming message.
+  """
+  @callback apply_event(term(), EventContext.t()) :: {term(), atom()} | term()
+
+  @doc """
+  This callback is used to get metadata for a event before
+  it's stored in the `Eventize.Persistence.EventStore`.
+  """
+  @callback get_event_meta_data(term()) :: map()
+
+  @doc """
+  This callback can be used to specify a list cleanups that should
+  happen after a specific event has been applied to the process.
+  """
+  @callback cleanup(term(), CleanupContext.t()) :: list() | term()
+
+  @doc """
+  This callback is used to apply a loaded snapshot to the process.
+  """
+  @callback apply_snapshot(term(), SnapshotContext.t()) :: {term(), atom()} | term()
+
+  @doc """
+  This callback is used to get metadata for a snapshot before
+  it's stored in the `Eventize.Persistence.EventStore`.
+  """
+  @callback get_snapshot_meta_data(term()) :: map()
+
+  @optional_callbacks start: 1,
+                      get_stream_name: 1,
+                      apply_event: 2,
+                      get_event_meta_data: 1,
+                      cleanup: 2,
+                      apply_snapshot: 2,
+                      get_snapshot_meta_data: 1
+
   defmodule MessageMetaData do
     @moduledoc false
 
@@ -46,9 +87,6 @@ defmodule Eventize.EventSourcedProcess do
 
     defstruct [:message_id, :correlation_id]
   end
-
-  @optional_callbacks start: 1,
-                      get_stream_name: 1
 
   defmacro __using__(_) do
     quote location: :keep, generated: true do
@@ -63,10 +101,7 @@ defmodule Eventize.EventSourcedProcess do
       alias Eventize.EventSourcedProcess.LoadLatestSnapshot.SnapshotContext
 
       @behaviour Eventize.EventSourcedProcess
-      @behaviour Eventize.EventSourcedProcess.ExecuteHandler
-      @behaviour Eventize.EventSourcedProcess.ApplyEvents
-      @behaviour Eventize.EventSourcedProcess.RunCleanups
-      @behaviour Eventize.EventSourcedProcess.LoadLatestSnapshot
+      @behaviour Eventize.EventSourcedProcess.ProcessBehavior
 
       @before_compile Eventize.EventSourcedProcess
 

@@ -6,6 +6,12 @@ defmodule Eventize.EventSourcedProcess.LoadEvents do
 
   @behaviour Eventize.EventSourcedProcess.InitPipeline.PipelineStep
 
+  alias Eventize.EventSourcedProcess.InitPipeline.ExecutionContext
+
+  @spec init(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def init(
         %ExecutionContext{
           state:

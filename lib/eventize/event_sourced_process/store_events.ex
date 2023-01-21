@@ -5,6 +5,10 @@ defmodule Eventize.EventSourcedProcess.StoreEvents do
 
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
 
+  @spec execute(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def execute(
         %ExecutionContext{
           type: type,

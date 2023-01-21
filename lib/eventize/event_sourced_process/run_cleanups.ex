@@ -10,6 +10,8 @@ defmodule Eventize.EventSourcedProcess.RunCleanups do
             sequence_number: non_neg_integer()
           }
 
+    @enforce_keys [:state, :meta_data, :sequence_number]
+
     defstruct [:state, :meta_data, :sequence_number]
   end
 
@@ -18,13 +20,10 @@ defmodule Eventize.EventSourcedProcess.RunCleanups do
 
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
 
-  @callback cleanup(term(), term()) :: list() | term()
-
-  @callback cleanup(term(), term(), map()) :: list() | term()
-
-  @optional_callbacks cleanup: 2,
-                      cleanup: 3
-
+  @spec execute(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def execute(
         context,
         next

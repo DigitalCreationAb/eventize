@@ -3,6 +3,12 @@ defmodule Eventize.EventSourcedProcess.InitDefaultState do
 
   @behaviour Eventize.EventSourcedProcess.InitPipeline.PipelineStep
 
+  alias Eventize.EventSourcedProcess.InitPipeline.ExecutionContext
+
+  @spec init(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def init(
         %Eventize.EventSourcedProcess.InitPipeline.ExecutionContext{
           state: state,

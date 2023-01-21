@@ -3,8 +3,14 @@ defmodule Eventize.EventSourcedProcess.ExecuteStartup do
 
   @behaviour Eventize.EventSourcedProcess.InitPipeline.PipelineStep
 
+  alias Eventize.EventSourcedProcess.InitPipeline.ExecutionContext
+
+  @spec init(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def init(
-        %Eventize.EventSourcedProcess.InitPipeline.ExecutionContext{
+        %ExecutionContext{
           state: %Eventize.EventSourcedProcessState{id: id} = state,
           process: process
         } = context,
@@ -25,7 +31,7 @@ defmodule Eventize.EventSourcedProcess.ExecuteStartup do
           {process, initial_state}
       end
 
-    next.(%Eventize.EventSourcedProcess.InitPipeline.ExecutionContext{
+    next.(%ExecutionContext{
       context
       | state: %Eventize.EventSourcedProcessState{
           state

@@ -10,6 +10,8 @@ defmodule Eventize.EventSourcedProcess.LoadLatestSnapshot do
             version: non_neg_integer()
           }
 
+    @enforce_keys [:state, :meta_data, :version]
+
     defstruct [:state, :meta_data, :version]
   end
 
@@ -19,16 +21,10 @@ defmodule Eventize.EventSourcedProcess.LoadLatestSnapshot do
 
   @behaviour Eventize.EventSourcedProcess.InitPipeline.PipelineStep
 
-  @callback apply_snapshot(term(), term()) :: {term(), atom()} | term()
-
-  @callback apply_snapshot(term(), term(), map()) :: {term(), atom()} | term()
-
-  @callback get_snapshot_meta_data(term()) :: map()
-
-  @optional_callbacks apply_snapshot: 2,
-                      apply_snapshot: 3,
-                      get_snapshot_meta_data: 1
-
+  @spec init(
+          ExecutionContext.t(),
+          Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
+        ) :: ExecutionContext.t()
   def init(
         %ExecutionContext{
           state:

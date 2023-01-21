@@ -9,6 +9,14 @@ defmodule Eventize.Persistence.EventStore do
     Represents a event with payload, meta data and a sequence number.
     """
 
+    @type t :: %__MODULE__{
+            payload: term(),
+            meta_data: map(),
+            sequence_number: non_neg_integer()
+          }
+
+    @enforce_keys [:payload, :meta_data, :sequence_number]
+
     defstruct [:payload, :meta_data, :sequence_number]
   end
 
@@ -16,6 +24,14 @@ defmodule Eventize.Persistence.EventStore do
     @moduledoc """
     Represents a snapshot with payload, meta data and version.
     """
+
+    @type t :: %__MODULE__{
+            payload: term(),
+            meta_data: map(),
+            version: non_neg_integer()
+          }
+
+    @enforce_keys [:payload, :meta_data, :version]
 
     defstruct [:payload, :meta_data, :version]
   end
