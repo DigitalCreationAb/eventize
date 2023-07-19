@@ -29,6 +29,9 @@ defmodule Eventize.EventSourcedProcess.ApplyEvents do
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
   @behaviour Eventize.EventSourcedProcess.InitPipeline.PipelineStep
 
+  @doc """
+  Applies existing events to the process when loading.
+  """
   @spec init(
           InitExecutionContext.t(),
           Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
@@ -59,6 +62,9 @@ defmodule Eventize.EventSourcedProcess.ApplyEvents do
     })
   end
 
+  @doc """
+  Applies events after they have been stored in the `Eventize.Persistence.EventStore`.
+  """
   @spec execute(
           ExecutionContext.t(),
           Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()

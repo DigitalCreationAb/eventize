@@ -7,6 +7,9 @@ defmodule Eventize.EventSourcedProcess.ExecuteHandler do
 
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
 
+  @doc """
+  Executes the correct handler.
+  """
   @spec execute(
           ExecutionContext.t(),
           Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()

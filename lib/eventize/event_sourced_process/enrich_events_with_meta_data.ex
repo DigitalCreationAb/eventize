@@ -5,6 +5,10 @@ defmodule Eventize.EventSourcedProcess.EnrichEventsWithMetaData do
 
   @behaviour Eventize.EventSourcedProcess.ExecutionPipeline.PipelineStep
 
+  @doc """
+  Enriches all events with correct meta data before they
+  are stored to the `Eventize.Persistence.EventStore`.
+  """
   @spec execute(
           ExecutionContext.t(),
           Eventize.EventSourcedProcess.ExecutionPipeline.execution_pipeline()

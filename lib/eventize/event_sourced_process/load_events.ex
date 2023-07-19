@@ -8,6 +8,10 @@ defmodule Eventize.EventSourcedProcess.LoadEvents do
 
   alias Eventize.EventSourcedProcess.InitPipeline.ExecutionContext
 
+  @doc """
+  Loads events from the `Eventize.Persistence.EventStore`
+  for the current process.
+  """
   @spec init(
           ExecutionContext.t(),
           Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()

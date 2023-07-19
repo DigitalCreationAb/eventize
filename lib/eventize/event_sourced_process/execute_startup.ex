@@ -5,19 +5,24 @@ defmodule Eventize.EventSourcedProcess.ExecuteStartup do
 
   alias Eventize.EventSourcedProcess.InitPipeline.ExecutionContext
 
+  @doc """
+  Execute the `c:Eventize.EventSourcedProcess.start/1` callback when
+  starting up the process.
+  """
   @spec init(
           ExecutionContext.t(),
           Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
         ) :: ExecutionContext.t()
   def init(
         %ExecutionContext{
-          state: %Eventize.EventSourcedProcessState{id: id} = state,
-          process: process
+          state: %Eventize.EventSourcedProcessState{} = state,
+          process: process,
+          input: input
         } = context,
         next
       ) do
     {initial_behavior, initial_state} =
-      case process.start(id) do
+      case process.start(input) do
         nil ->
           {process, nil}
 

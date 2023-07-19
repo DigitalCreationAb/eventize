@@ -5,6 +5,9 @@ defmodule Eventize.EventSourcedProcess.InitDefaultState do
 
   alias Eventize.EventSourcedProcess.InitPipeline.ExecutionContext
 
+  @doc """
+  Initializes the default state for the process.
+  """
   @spec init(
           ExecutionContext.t(),
           Eventize.EventSourcedProcess.InitPipeline.execution_pipeline()
